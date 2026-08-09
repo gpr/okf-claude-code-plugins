@@ -4,5 +4,5 @@ A collection of Claude Code plugin for using the [Open Knowledge Format(OKF)](ht
 
 - `okf-core`: shared OKF v0.2 format knowledge (the `okf-spec` skill) used by the other plugins
 - `okf-reader`: allow to automatically use OKF bundles
-- `okf-writer`: allow to create and maintain an OKF bundle
+- `okf-writer`: create OKF concept documents and keep templates, `index.md`, and `log.md` in sync
 - `okf-driven-dev`: Spec driven development workflow based on OKF

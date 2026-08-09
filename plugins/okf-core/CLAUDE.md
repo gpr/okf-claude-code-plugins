@@ -20,7 +20,7 @@ covers what breaks when you edit it.
 
 - Bundle discovery, precedence, `okf.json` → `okf-reader`'s job, not this
   plugin's. Don't duplicate discovery rules here.
-- Authoring workflow → `okf-writer`'s job (not yet built).
+- Authoring workflow → `okf-writer`'s job.
 
 `okf-writer` and `okf-driven-dev` are expected to work alongside `okf-core`
 but must still function without it — Claude Code has no inter-plugin

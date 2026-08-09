@@ -18,7 +18,7 @@ Plugin internals vary by kind — this marketplace has both:
 - **Hook-based** (`okf-reader`): `hooks/hooks.json`, `scripts/` (stdlib
   Python), `agents/`, `bin/` (CLI entry points), `tests/` (unittest),
   `examples/` (fixtures for the README).
-- **Skill-only** (`okf-core`): `skills/<skill-name>/SKILL.md` +
+- **Skill-only** (`okf-core`, `okf-writer`): `skills/<skill-name>/SKILL.md` +
   `references/*.md`, no hooks, scripts, or tests.
 
 ## Adding or renaming a plugin
@@ -73,7 +73,7 @@ directly), so doing so breaks the worked example without touching any test.
 
 ## Adding a plugin
 
-No CLAUDE.md exists yet for `okf-writer` or `okf-driven-dev` — neither exists
-as a plugin directory in this repository; both are named only in the root
-`README.md`'s plugin list. Add a plugin-specific CLAUDE.md alongside the
-plugin's first implementation, once there's something to describe.
+No CLAUDE.md exists yet for `okf-driven-dev` — it doesn't exist as a plugin
+directory in this repository; it's named only in the root `README.md`'s
+plugin list. Add a plugin-specific CLAUDE.md alongside its first
+implementation, once there's something to describe.

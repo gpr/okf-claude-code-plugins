@@ -16,6 +16,11 @@
       "name": "okf-reader",
       "source": "./plugins/okf-reader",
       "description": "Loads OKF knowledge bundles into Claude Code sessions, lazily and by declared authority."
+    },
+    {
+      "name": "okf-writer",
+      "source": "./plugins/okf-writer",
+      "description": "Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync."
     }
   ]
 }

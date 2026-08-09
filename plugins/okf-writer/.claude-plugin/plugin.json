@@ -1,0 +1,11 @@
+{
+  "name": "okf-writer",
+  "description": "Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync.",
+  "version": "0.1.0",
+  "displayName": "OKF Writer",
+  "author": {
+    "name": "Gregory Romé",
+    "email": "gregory.rome@gmail.com",
+    "url": "https://github.com/gpr"
+  }
+}
