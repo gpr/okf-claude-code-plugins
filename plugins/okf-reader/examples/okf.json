@@ -1,17 +1,17 @@
 {
-  "$comment": "Place this as okf.json at the project root. Array order is precedence: on conflict, the earlier normative bundle wins.",
+  "$comment": "Place this as okf.json at the project root. It declares external bundles only - anything inside the project (like ./spec in this example, see spec/index.md) is found automatically and must not be repeated here. Array order is precedence: on conflict, the earlier normative bundle wins, after auto-discovered bundles.",
   "bundles": [
-    {
-      "id": "product-spec",
-      "source": "./spec",
-      "status": "normative",
-      "description": "This product's specifications, ADRs and constraints"
-    },
     {
       "id": "platform-standards",
       "source": "github:acme/engineering-standards@v2.1#okf",
       "status": "normative",
       "description": "Org-wide API and security constraints"
+    },
+    {
+      "id": "shared-reference",
+      "source": "/Users/shared/okf-bundles/reference",
+      "status": "informative",
+      "description": "Reference bundle mounted outside the project"
     },
     {
       "id": "okf-reference",
