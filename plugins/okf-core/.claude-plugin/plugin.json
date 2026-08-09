@@ -1,0 +1,11 @@
+{
+  "name": "okf-core",
+  "description": "Shared Open Knowledge Format (OKF) knowledge for OKF plugins.",
+  "version": "0.1.0",
+  "displayName": "OKF Core",
+  "author": {
+    "name": "Gregory Romé",
+    "email": "gregory.rome@gmail.com",
+    "url": "https://github.com/gpr"
+  }
+}
