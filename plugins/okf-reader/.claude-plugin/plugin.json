@@ -1,0 +1,33 @@
+{
+  "name": "okf-reader",
+  "description": "Loads OKF knowledge bundles into Claude Code sessions, lazily and by declared authority.",
+  "version": "0.1.0",
+  "displayName": "OKF Reader",
+  "author": {
+    "name": "Gregory Romé",
+    "email": "gregory.rome@gmail.com",
+    "url": "https://github.com/gpr"
+  },
+  "userConfig": {
+    "standards_bundle": {
+      "type": "directory",
+      "title": "Organization standards bundle",
+      "description": "Path to a normative OKF bundle applied to every project. Deploy via managed settings so a repository cannot override it.",
+      "required": false
+    },
+    "cache_dir": {
+      "type": "string",
+      "title": "Vendored bundle cache",
+      "description": "Where remote bundles are vendored, relative to the project root. The hook never fetches over the network; it only reads this directory.",
+      "default": ".okf/cache"
+    },
+    "context_budget": {
+      "type": "number",
+      "title": "Startup context budget",
+      "description": "Maximum characters injected at session start. Claude Code spills anything above 10000 to a file.",
+      "default": 9000,
+      "min": 500,
+      "max": 10000
+    }
+  }
+}

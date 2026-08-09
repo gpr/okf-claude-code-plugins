@@ -1,0 +1,23 @@
+{
+  "$comment": "Place this as okf.json at the project root. Array order is precedence: on conflict, the earlier normative bundle wins.",
+  "bundles": [
+    {
+      "id": "product-spec",
+      "source": "./spec",
+      "status": "normative",
+      "description": "This product's specifications, ADRs and constraints"
+    },
+    {
+      "id": "platform-standards",
+      "source": "github:acme/engineering-standards@v2.1#okf",
+      "status": "normative",
+      "description": "Org-wide API and security constraints"
+    },
+    {
+      "id": "okf-reference",
+      "source": "https://example.com/bundles/okf-reference.tar.gz",
+      "status": "informative",
+      "description": "OKF format reference and concept templates"
+    }
+  ]
+}
