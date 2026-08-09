@@ -95,6 +95,21 @@ class DiscoveryTests(TmpProjectTestCase):
         self.assertEqual(okf_context.discover_bundles(self.root), [])
 
 
+class TrustedBundlesTests(TmpProjectTestCase):
+    def test_relative_standards_bundle_resolves_against_hook_cwd(self):
+        write(self.root, "standards/index.md", "# Standards\n")
+        self.set_option("standards_bundle", "standards")
+        bundle = okf_context.trusted_bundles()[0]
+        self.assertEqual(okf_context.resolve(self.root, bundle), self.root / "standards")
+
+    def test_relative_standards_bundle_does_not_use_process_cwd(self):
+        write(self.root, "standards/index.md", "# Standards\n")
+        self.set_option("standards_bundle", "standards")
+        bundle = okf_context.trusted_bundles()[0]
+        with tempfile.TemporaryDirectory() as other:
+            self.assertIsNone(okf_context.resolve(Path(other).resolve(), bundle))
+
+
 class ExternalBundlesTests(TmpProjectTestCase):
     def test_inside_project_path_is_rejected(self):
         write(self.root, "spec/index.md", MARKED.format(title="Spec"))

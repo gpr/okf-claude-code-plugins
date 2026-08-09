@@ -104,8 +104,14 @@ def read_index_meta(index: Path) -> dict | None:
     if body_start is None or "okf_version" not in meta:
         return None
 
+    in_fence = False
     for line in lines[body_start:]:
         stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         if stripped.startswith("# "):
             meta["title"] = stripped[2:].strip()
             break
