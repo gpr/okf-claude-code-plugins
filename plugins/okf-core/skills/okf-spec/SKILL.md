@@ -41,11 +41,19 @@ don't quote them back as spec.
 
 - **Agent-writable:** `type`, `title`, `description`, `resource`, `tags`,
   `sources`, `generated`, `status`, `stale_after`, and values for declared
-  `parameters`.
+  `parameters`. When drafting a brand-new Attested Computation concept
+  (`status: draft`, no `verified` entry yet), an agent MAY also propose
+  `runtime`, `parameters`, `computation`, and `executor` — the concept
+  stays unverified until a human confirms it.
 - **Never agent-written:** `verified` (any entry), `attester`,
   `executor.receipt`, and the `computation` body of an Attested
-  Computation. These represent confirmation or sanctioned logic that must
-  come from a human or a deterministic process, not from this agent.
+  Computation. On an Attested Computation that already carries a
+  `verified` entry, this extends to `runtime`, the `computation` path,
+  and `executor.resource` too — changing any of these redefines what
+  "sanctioned" means, so it requires the same human/process confirmation
+  as `verified` itself, not a silent agent edit. These fields represent
+  confirmation or sanctioned logic that must come from a human or a
+  deterministic process, not from this agent.
 - **Actor literal:** for agent-authored concepts, `generated.by` is
   `claude-code/<model-id>` (e.g. `claude-code/claude-opus-5`). §7 only
   defines the grammar `<producer>/<version>`; this pins the literal so

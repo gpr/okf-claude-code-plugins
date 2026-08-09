@@ -109,10 +109,13 @@ An agent MAY only supply *values* for the declared `parameters`; it MUST
 NOT author or edit the computation. Binding `computation` with the
 parameter values into the executable artifact is the consumer's job, and
 the attester independently re-derives that same binding to compare
-against what actually ran. Because the comparison is on the expanded,
-compiled artifact the receipt carries (`executed_sql`, `compiled_sql`), a
-rewritten query, a swapped computation file, or a mutated dependency
-fails the check.
+against what actually ran. The comparison is on the expanded, compiled
+artifact the receipt carries — the field name is runtime-dependent and
+declared per-concept in `executor.receipt`: a SQL runtime like the
+`bigquery` example above typically reports `executed_sql`, while a
+templated runtime like `dbt` typically reports `compiled_sql`. Whichever
+field the concept declares, a rewritten query, a swapped computation
+file, or a mutated dependency fails the check.
 
 ## How a consumer uses it (informative)
 
