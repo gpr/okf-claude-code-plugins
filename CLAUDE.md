@@ -62,14 +62,16 @@ python3 plugins/okf-reader/bin/okf-reader-preview .         # what the hook woul
 
 With okf-reader active, this repo self-discovers
 `plugins/okf-reader/examples/spec/index.md` (it declares `okf_version`) and
-injects it as a normative bundle. That's a test fixture demonstrating
-auto-discovery, not a spec governing this repo — ignore it, and don't remove
-its frontmatter to make the injection stop; `tests/test_okf_context.py`
-asserts on that marker.
+injects it as a normative bundle. That's a fixture demonstrating
+auto-discovery for `README.md`'s docs, not a spec governing this repo —
+ignore it. Don't strip its frontmatter to silence the injection: the
+`okf_version` discovery mechanism itself is covered by
+`tests/test_okf_context.py` (via synthetic tmp-dir fixtures, not this file
+directly), so doing so breaks the worked example without touching any test.
 
 ## Adding a plugin
 
-No CLAUDE.md exists yet for `okf-writer` or `okf-driven-dev` — neither has code
-(the former is an empty directory, the latter is only a README bullet). Add a
-plugin-specific CLAUDE.md alongside the plugin's first implementation, once
-there's something to describe.
+No CLAUDE.md exists yet for `okf-writer` or `okf-driven-dev` — neither exists
+as a plugin directory in this repository; both are named only in the root
+`README.md`'s plugin list. Add a plugin-specific CLAUDE.md alongside the
+plugin's first implementation, once there's something to describe.

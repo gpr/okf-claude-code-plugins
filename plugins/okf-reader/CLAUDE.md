@@ -13,7 +13,10 @@ this file covers what breaks when you edit the implementation.
   empty output, so it doubles as a CI check that a project's bundles resolve
 - `agents/okf-search.md` — haiku search agent named in the hook's injected
   `RULES` text
-- `examples/` — fixtures `README.md` refers to (`okf.json`, a marked `spec/`)
+- `examples/` — `okf.json` is referenced directly by `README.md`; `spec/` is a
+  standalone fixture demonstrating the `okf_version` marker (mirrors the
+  inline example in `README.md`'s Auto-discovery section but isn't itself
+  linked from it)
 - `tests/test_okf_context.py` — stdlib `unittest`, 19 cases
 
 ## Invariants in `scripts/okf_context.py`
