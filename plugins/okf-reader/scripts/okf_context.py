@@ -150,10 +150,10 @@ def build_context(cwd: Path) -> str:
         return ""
 
     rows = [
-        f"| `{cell(bundle['id'])}` | normative | {rank} | `{display(cwd, root)}/index.md` | {cell(bundle.get('description', ''))} |"
+        f"| `{cell(bundle['id'])}` | normative | {rank} | `{cell(display(cwd, root))}/index.md` | {cell(bundle.get('description', ''))} |"
         for rank, (bundle, root) in enumerate(normative, start=1)
     ] + [
-        f"| `{cell(bundle['id'])}` | informative | – | `{display(cwd, root)}/index.md` | {cell(bundle.get('description', ''))} |"
+        f"| `{cell(bundle['id'])}` | informative | – | `{cell(display(cwd, root))}/index.md` | {cell(bundle.get('description', ''))} |"
         for bundle, root in informative
     ]
 
