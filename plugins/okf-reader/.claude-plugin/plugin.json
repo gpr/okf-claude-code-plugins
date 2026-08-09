@@ -20,14 +20,6 @@
       "title": "Vendored bundle cache",
       "description": "Where remote bundles are vendored, relative to the project root. The hook never fetches over the network; it only reads this directory.",
       "default": ".okf/cache"
-    },
-    "context_budget": {
-      "type": "number",
-      "title": "Startup context budget",
-      "description": "Maximum characters injected at session start. Claude Code spills anything above 10000 to a file.",
-      "default": 9000,
-      "min": 500,
-      "max": 10000
     }
   }
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Preview what the OKF hook would inject, without starting Claude Code.
 
-    python3 scripts/okf_preview.py [PROJECT] [--budget N] [--standards DIR]
-                                   [--event SessionStart|SubagentStart] [--raw]
+    bin/okf-reader-preview [PROJECT] [--standards DIR] [--cache-dir DIR]
+                            [--event SessionStart|SubagentStart] [--raw]
 
 Exits 1 when the hook produced nothing, so it is usable in CI as a check that a
 project's bundles still resolve.
@@ -24,7 +24,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("project", nargs="?", default=".", help="project root (default: cwd)")
-    parser.add_argument("--budget", type=int, help="CLAUDE_PLUGIN_OPTION_CONTEXT_BUDGET")
     parser.add_argument("--standards", help="CLAUDE_PLUGIN_OPTION_STANDARDS_BUNDLE")
     parser.add_argument("--cache-dir", help="CLAUDE_PLUGIN_OPTION_CACHE_DIR")
     parser.add_argument("--event", default="SessionStart",
@@ -39,7 +38,6 @@ def main() -> int:
 
     env = dict(os.environ)
     for flag, key in (
-        (args.budget, "CONTEXT_BUDGET"),
         (args.standards, "STANDARDS_BUNDLE"),
         (args.cache_dir, "CACHE_DIR"),
     ):
@@ -67,8 +65,7 @@ def main() -> int:
 
     context = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
     chars = len(context)
-    print(f"\n{'=' * 72}\n{args.event}: {chars} chars (~{chars // 4} tokens), "
-          f"cap 10000\n{'=' * 72}\n")
+    print(f"\n{'=' * 72}\n{args.event}: {chars} chars (~{chars // 4} tokens)\n{'=' * 72}\n")
     print(context)
     return 0
 

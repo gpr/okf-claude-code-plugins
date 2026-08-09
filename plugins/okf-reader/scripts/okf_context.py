@@ -11,7 +11,8 @@ Bundles come from two places, deliberately:
     with the team. Untrusted: it ships with the repository.
 
 Because the project file is untrusted, its paths are confined to the project
-root and its reads are size-capped.
+root. The hook only lists bundles and points at their `index.md`; it never
+reads bundle content, so there is nothing to size-cap.
 
 Design constraints:
   * Never touches the network. Remote bundles must be vendored into the cache
@@ -28,8 +29,6 @@ import sys
 from pathlib import Path
 
 CONFIG = "okf.json"
-HARD_CAP = 10_000  # Claude Code spills additionalContext above this to a file
-MAX_INDEX_BYTES = 256 * 1024  # refuse to read an implausible index.md
 
 RULES = """\
 ## How to read OKF bundles
@@ -43,13 +42,6 @@ RULES = """\
 def option(key: str, default: str = "") -> str:
     """Read a userConfig value, exported to hooks as CLAUDE_PLUGIN_OPTION_<KEY>."""
     return os.environ.get(f"CLAUDE_PLUGIN_OPTION_{key.upper()}", default).strip()
-
-
-def budget() -> int:
-    try:
-        return max(500, min(HARD_CAP, int(float(option("context_budget", "9000")))))
-    except ValueError:
-        return 9000
 
 
 def trusted_bundles() -> list[dict]:
@@ -120,9 +112,6 @@ def resolve(cwd: Path, bundle: dict) -> Path | None:
     index = root / "index.md"
     if not index.is_file():
         return None
-    if index.stat().st_size > MAX_INDEX_BYTES:
-        print(f"okf: {bundle_id}/index.md is implausibly large; ignored", file=sys.stderr)
-        return None
     return root
 
 
@@ -131,6 +120,12 @@ def display(cwd: Path, root: Path) -> str:
         return str(root.relative_to(cwd.resolve()))
     except ValueError:
         return str(root)
+
+
+def cell(value: str) -> str:
+    """Escape a value for a markdown table cell. Descriptions come from an
+    untrusted okf.json and must not be able to break the table's shape."""
+    return value.replace("|", "\\|").replace("\n", " ").replace("\r", " ")
 
 
 def build_context(cwd: Path) -> str:
@@ -154,48 +149,25 @@ def build_context(cwd: Path) -> str:
     if not normative and not informative:
         return ""
 
-    parts = [RULES]
-    remaining = budget() - len(RULES)
+    rows = [
+        f"| `{cell(bundle['id'])}` | normative | {rank} | `{display(cwd, root)}/index.md` | {cell(bundle.get('description', ''))} |"
+        for rank, (bundle, root) in enumerate(normative, start=1)
+    ] + [
+        f"| `{cell(bundle['id'])}` | informative | – | `{display(cwd, root)}/index.md` | {cell(bundle.get('description', ''))} |"
+        for bundle, root in informative
+    ]
 
-    # Normative bundles are binding, so their index is inlined eagerly: you
-    # cannot comply with a specification you do not know exists.
-    for rank, (bundle, root) in enumerate(normative, start=1):
-        rel = display(cwd, root)
-        scope = "organization" if bundle.get("_trusted") else "project"
-        header = (
-            f"## Bundle `{bundle['id']}` - NORMATIVE ({scope}, precedence {rank}, at `{rel}/`)\n\n"
-            "Its specifications are binding. Comply with them, or state explicitly "
-            "why you cannot. On conflict, the lower precedence number wins.\n\n"
-            "Root index:\n\n"
-        )
-        try:
-            body = (root / "index.md").read_text(encoding="utf-8", errors="replace")
-        except OSError as exc:
-            print(f"okf: cannot read {rel}/index.md: {exc}", file=sys.stderr)
-            continue
-        chunk = header + body
-        if len(chunk) > remaining:
-            chunk = chunk[: max(remaining, 0)] + f"\n\n[truncated - read `{rel}/index.md` in full]"
-        parts.append(chunk)
-        remaining -= len(chunk)
-        if remaining <= 0:
-            break
+    table = (
+        "## OKF knowledge bundles\n\n"
+        "Normative bundles are binding: comply with them, or state explicitly why "
+        "you cannot. On conflict, the lower precedence number wins. Informative "
+        "bundles are advisory and may be overridden by normative bundles or by "
+        "project code. Read an index only when you need it.\n\n"
+        "| Bundle | Type | Prec | Index | Description |\n"
+        "|---|---|---|---|---|\n" + "\n".join(rows)
+    )
 
-    # Informative bundles get a pointer only. "Consult when relevant" is exactly
-    # a lazy-load condition, so they cost ~15 tokens each at startup.
-    if informative:
-        lines = "\n".join(
-            f"- `{b['id']}` at `{display(cwd, r)}/`"
-            + (f" - {b['description']}" if b.get("description") else "")
-            for b, r in informative
-        )
-        parts.append(
-            "## Informative bundles\n\n"
-            "Consult these when relevant. They are not binding and may be overridden "
-            f"by normative bundles or by project code. Read their `index.md` on demand.\n\n{lines}"
-        )
-
-    return "\n\n".join(parts)
+    return "\n\n".join([RULES, table])
 
 
 def main() -> None:
