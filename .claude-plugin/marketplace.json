@@ -1,1 +1,16 @@
-{}
+{
+  "name": "okf-cc-plugins",
+  "description": "Claude Code plugins for the Open Knowledge Format (OKF).",
+  "owner": {
+    "name": "Gregory Romé",
+    "email": "gregory.rome@gmail.com",
+    "url": "https://github.com/gpr"
+  },
+  "plugins": [
+    {
+      "name": "okf-reader",
+      "source": "./plugins/okf-reader",
+      "description": "Loads OKF knowledge bundles into Claude Code sessions, lazily and by declared authority."
+    }
+  ]
+}
