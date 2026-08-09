@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(jq -r '.tool_input.file_path // empty'); case \"$file\" in */.claude-plugin/*.json) jq -r --slurpfile mk .claude-plugin/marketplace.json '.name as $n | .description as $d | ($mk[0].plugins[] | select(.name==$n)) as $e | if $e == null then \"MISSING in marketplace: \\($n)\" elif $e.description != $d then \"DESC DRIFT: \\($n)\" elif $e.source != \"./plugins/\\($n)\" then \"SOURCE DRIFT: \\($n)\" else empty end' plugins/*/.claude-plugin/plugin.json ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
