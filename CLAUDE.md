@@ -10,14 +10,16 @@ application. Each `plugins/<name>/` is an independently installable plugin;
 .claude-plugin/marketplace.json     # marketplace manifest: name, owner, plugins[]
 plugins/<name>/
   .claude-plugin/plugin.json        # plugin manifest: name, description, userConfig
-  hooks/hooks.json                  # hook registration
-  scripts/                          # hook implementations (stdlib Python)
-  agents/                           # subagent definitions
-  bin/                              # CLI entry points
-  tests/                            # unittest suites
-  examples/                         # fixtures referenced by the plugin's README
   README.md                         # user-facing behaviour docs
 ```
+
+Plugin internals vary by kind — this marketplace has both:
+
+- **Hook-based** (`okf-reader`): `hooks/hooks.json`, `scripts/` (stdlib
+  Python), `agents/`, `bin/` (CLI entry points), `tests/` (unittest),
+  `examples/` (fixtures for the README).
+- **Skill-only** (`okf-core`): `skills/<skill-name>/SKILL.md` +
+  `references/*.md`, no hooks, scripts, or tests.
 
 ## Adding or renaming a plugin
 
