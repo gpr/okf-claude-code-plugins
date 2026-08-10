@@ -1,0 +1,48 @@
+{
+  "skill_name": "okf-type-library",
+  "evals": [
+    {
+      "id": 0,
+      "name": "spec-driven-empty-bundle",
+      "prompt": "I'm starting spec-driven development on this project. Set up an OKF bundle at ./spec with the concept types I'll need. Build the bundle under a throwaway temp directory (e.g. $TMPDIR/okf-eval-0), never inside this repository.",
+      "expected_output": "Creates ./spec as a bundle root (index.md with okf_version: \"0.2\"), installs the spec-driven preset (Specification, Requirement, Plan Item, ADR, Test Plan) into spec/templates/, registers all 5 in spec/templates/index.md, links templates/ from the root index.md, and logs the creations in spec/log.md.",
+      "files": [],
+      "expectations": [
+        "Exactly 5 files exist under spec/templates/: specification.md, requirement.md, plan-item.md, adr.md, test-plan.md",
+        "Every one of those 5 files has exactly two '---' lines and a 'type: Template' frontmatter key",
+        "No '<' placeholder text remains in any of the 5 files' own frontmatter blocks",
+        "spec/templates/index.md exists with H1 '# Templates' and one entry per installed type, link text matching each file's fence type: value",
+        "spec/log.md exists with H1 '# Directory Update Log' and today's dated section listing all 5 creations",
+        "spec/index.md exists with okf_version: \"0.2\" and links to templates/",
+        "The agent asked at most one confirmation before writing, not one per file"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "vague-intent-existing-bundle",
+      "prompt": "Seed my knowledge bundle with some useful starter templates. The bundle already exists — I'll tell you where it is if you ask, or you can find it under the temp directory I set up for this task.",
+      "expected_output": "Given a pre-existing bundle at spec/ with index.md, log.md (one older dated section), templates/index.md + templates/adr.md, and decisions/choose-duckdb.md (type: ADR): selects the minimal preset (Specification, ADR, Plan Item) since intent is vague, skips ADR because it already exists (reports the skip, doesn't drop it silently), writes only Specification and Plan Item, and inserts today's log.md section above the older one.",
+      "files": [],
+      "expectations": [
+        "Only specification.md and plan-item.md are newly written under spec/templates/",
+        "spec/templates/adr.md is byte-for-byte unchanged from the fixture",
+        "spec/templates/index.md still contains its pre-existing ADR entry plus 2 new entries",
+        "spec/log.md has today's dated section inserted above the pre-existing older dated section",
+        "The agent's response explicitly reports that ADR was skipped because it already exists"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "named-types-backfill",
+      "prompt": "Add Technology and Dependency templates to the spec/ bundle so I can record our stack choices and the versions we pin. The bundle is under the temp directory set up for this task.",
+      "expected_output": "Given spec/index.md and spec/templates/adr.md present but no spec/templates/index.md: installs exactly Technology and Dependency (no preset expansion since types were named explicitly), creates templates/index.md with a back-filled ADR entry (reading its canonical type from adr.md's fence) plus the two new entries, and each new template's Traceability section references the cross-link directories from references/traceability.md (technology.md links /decisions/, dependency.md links /technologies/).",
+      "files": [],
+      "expectations": [
+        "Exactly technology.md and dependency.md are written under spec/templates/ — no other type installed",
+        "spec/templates/index.md is created and contains 3 entries: a back-filled ADR entry plus Technology and Dependency",
+        "The back-filled ADR entry's link text matches the canonical type string inside spec/templates/adr.md's fence",
+        "technology.md's Traceability section links a /decisions/ path; dependency.md's links a /technologies/ path"
+      ]
+    }
+  ]
+}

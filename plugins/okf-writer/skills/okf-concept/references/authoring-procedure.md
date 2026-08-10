@@ -80,6 +80,13 @@ all-caps token and any intra-word capital the user typed (`ADR`, `SLO`,
   (`type: Template`) is discarded. Its body's fenced code block becomes
   the new concept's frontmatter; the headings after the fence become the
   body.
+- Template missing, but the `okf-type-library` skill catalogs this type —
+  install that single template from its catalog (never a preset; that
+  skill's selection step is skipped when it is invoked this way),
+  register it in `templates/index.md`, log it, then load its fence. The
+  run is **not** marked new-template: step 7 would otherwise overwrite a
+  hand-vetted catalog template with one generalized from a single
+  concept.
 - Type exists but the template does not — derive the skeleton from the
   most recently modified existing concept of that type, and mark the run
   **new-template** so step 7 still runs.

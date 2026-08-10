@@ -1,7 +1,7 @@
 {
   "name": "okf-writer",
   "description": "Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "OKF Writer",
   "author": {
     "name": "Gregory Romé",

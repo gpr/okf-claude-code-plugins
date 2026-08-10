@@ -78,7 +78,7 @@ virtualenv, no dependency manifest.
 |---|---|---|
 | [`okf-core`](plugins/okf-core) | Shared Open Knowledge Format (OKF) knowledge for OKF plugins. | skill `okf-spec` |
 | [`okf-reader`](plugins/okf-reader) | Loads OKF knowledge bundles into Claude Code sessions, lazily and by declared authority. | `SessionStart` hook, agent `okf-search`, `bin/okf-reader-preview` |
-| [`okf-writer`](plugins/okf-writer) | Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync. | skill `okf-concept` |
+| [`okf-writer`](plugins/okf-writer) | Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync. | skills `okf-concept`, `okf-type-library` |
 
 ## How okf-reader finds bundles
 

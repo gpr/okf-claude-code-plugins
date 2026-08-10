@@ -19,7 +19,8 @@ Plugin internals vary by kind — this marketplace has both:
   Python), `agents/`, `bin/` (CLI entry points), `tests/` (unittest),
   `examples/` (fixtures for the README).
 - **Skill-only** (`okf-core`, `okf-writer`): `skills/<skill-name>/SKILL.md` +
-  `references/*.md`, no hooks, scripts, or tests.
+  `references/*.md` (+ `assets/` for `okf-writer`'s `okf-type-library`, which
+  ships ready-made template files), no hooks, scripts, or tests.
 
 ## Adding or renaming a plugin
 

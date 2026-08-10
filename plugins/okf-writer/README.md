@@ -3,7 +3,9 @@
 Authors [Open Knowledge Format (OKF)](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md)
 concept documents.
 
-Ships one skill, `okf-concept`: given a request like "add an ADR recording
+Ships two skills, `okf-concept` and `okf-type-library`.
+
+`okf-concept`: given a request like "add an ADR recording
 why we chose DuckDB" or "add a playbook for rotating the on-call pager", it
 
 1. finds the bundle root and identifies the concept `type` from the request,
@@ -24,6 +26,17 @@ See `skills/okf-concept/SKILL.md`.
 fenced code block in the body, never as a second frontmatter block. This
 keeps a bundle's `templates/` directory spec-conformant instead of seeding it
 with fake ADRs or Metrics.
+
+## Starting from a catalog
+
+`okf-type-library` ships 16 ready-made type templates — Specification,
+Requirement, Plan Item, ADR, Technology, Dependency, and ten more. Ask it
+to "set up the types for spec-driven development" and it installs the
+five that matter for that workflow, registers them in
+`templates/index.md`, and logs the change. It installs a subset, never
+all 16 at once: an unused type sitting in the registry biases every
+later `okf-concept` run toward it. See
+`skills/okf-type-library/SKILL.md`.
 
 ## What it never writes
 

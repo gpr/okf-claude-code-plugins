@@ -36,7 +36,10 @@ Steps 1–6 write nothing. Full detail for every step is in
    or containment near-match: ask existing-vs-new. No match: new type.
 4. **Load the skeleton** from `templates/<slug>.md` — its body fence
    becomes the new frontmatter, its headings become the new body. No
-   template: invent the skeleton and mark the run new-template.
+   template, but `okf-type-library` catalogs this type: install that
+   one template (not a preset) and load it; the run is not
+   new-template. Neither: invent the skeleton and mark the run
+   new-template.
 5. **Choose directory and filename.** Follow existing concepts of this
    type; else `<root>/<plural-slug>/`; else `<root>/`. Filename is
    `slug(title).md`; if that slugs to `index` or `log`, ask for a
@@ -97,4 +100,5 @@ this skill's directory.
 fields, trust tiers, conformance) belong to `okf-spec` (`okf-core`), read
 via `references/okf-essentials.md` when that skill isn't installed and
 deferred to when it is. Bundle discovery, precedence, and `okf.json` belong
-to `okf-reader`.
+to `okf-reader`. Seeding a bundle with a starter set of types, before any
+concept of those types exists, belongs to `okf-type-library` (same plugin).
