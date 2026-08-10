@@ -25,7 +25,8 @@ Steps 1–6 write nothing. Full detail for every step is in
 
 1. **Find the bundle root.** Use okf-reader's injected bundle table if
    present; otherwise find directories whose `index.md` declares
-   `okf_version`. Zero found or more than one found and ambiguous: ask.
+   `okf_version`. Zero found, more than one found and ambiguous, or the
+   sole candidate is the trusted (`standards_bundle`) bundle: ask.
 2. **Read the type vocabulary.** `<root>/templates/index.md` is the
    registry — link text is the canonical `type`, link target is
    `templates/<slug>.md`. Add the `type:` values of existing concepts
@@ -38,7 +39,8 @@ Steps 1–6 write nothing. Full detail for every step is in
    template: invent the skeleton and mark the run new-template.
 5. **Choose directory and filename.** Follow existing concepts of this
    type; else `<root>/<plural-slug>/`; else `<root>/`. Filename is
-   `slug(title).md`. Never overwrite.
+   `slug(title).md`; if that slugs to `index` or `log`, ask for a
+   different title instead. Never overwrite.
 6. **Confirm once.** Show root, type (existing or new), path, title,
    description, and whether a template will be derived.
 7. **Write the concept.** Set `type`, `title`, `description`,
@@ -65,10 +67,10 @@ Then report every file written and confirm no `<placeholder>` survived.
 
 | Decide silently | Must ask |
 |---|---|
-| Slug mechanics, index/log formatting, insertion position | Which bundle, when more than one is found and the request is ambiguous |
+| Slug mechanics, index/log formatting, insertion position | Which bundle, when more than one is found and the request is ambiguous, or when the sole candidate is the trusted bundle |
 | Which frontmatter keys to include | Existing-vs-new on an acronym/containment hit |
 | Which template headings to keep or drop | Target directory when no precedent exists |
-| The date/timestamp values | Overwriting or editing an existing file |
+| The date/timestamp values | Overwriting or editing an existing file, or a filename that would collide with a reserved name |
 
 ## Never written by this skill
 

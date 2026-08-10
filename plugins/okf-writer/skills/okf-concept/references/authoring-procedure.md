@@ -13,12 +13,20 @@ step 3 or step 7; read `okf-essentials.md` if `okf-spec` isn't installed.
 3. Resolve:
    - **0 candidates** — ask the user: name an existing bundle directory,
      or a path at which to start a new one. Never invent a root.
-   - **1 candidate** — use it.
+   - **1 candidate** — use it, unless it is the trusted bundle (below),
+     which always asks.
    - **N candidates** — if the request names a path inside exactly one,
      use that one; otherwise ask which.
 4. A directory the user names explicitly is the bundle root even without
    an `okf_version` marker — the marker is a discovery aid, not a
    conformance requirement.
+5. In okf-reader's injected table, the row with `Bundle` id `standards`
+   is the organization's trusted bundle (from the `standards_bundle`
+   userConfig, deployed via user or managed settings — a cloned
+   repository cannot supply or override it). Never treat it as a write
+   target without asking first, even when it is the only candidate:
+   confirm the user actually intends to add a concept to the
+   organization's shared standards, not just their own project.
 
 ## Step 1 — Read the bundle's type vocabulary
 
@@ -93,10 +101,14 @@ Directory, first rule that fires:
 
 `templates/` never receives anything but `type: Template` files.
 
-Filename: `slug(title) + ".md"`, no singularization. A collision with an
-existing file stops the run and asks; never overwrite. If the existing
-file carries a `verified` entry, refuse outright — this is a creation
-skill, not an editor.
+Filename: `slug(title) + ".md"`, no singularization. If this produces
+`index` or `log` — the two reserved names — stop and ask for a different
+title before writing; `<dir>/index.md` and `<dir>/log.md` are never
+concept documents, and step 8/9 would otherwise treat the file as the
+directory's index or the bundle's log instead of a concept. A collision
+with any other existing file stops the run and asks; never overwrite. If
+the existing file carries a `verified` entry, refuse outright — this is
+a creation skill, not an editor.
 
 ## Step 5 — Single confirm point
 
@@ -106,10 +118,10 @@ template will be derived.
 
 | Decide silently | Must ask |
 |---|---|
-| Slug mechanics, index/log formatting, insertion position | Which bundle, when N > 1 |
+| Slug mechanics, index/log formatting, insertion position | Which bundle, when step 0 leaves more than one candidate (including the trusted bundle as sole candidate) |
 | Which frontmatter keys to include | Existing-vs-new on an acronym/containment hit |
 | Which template headings to keep or drop | Target directory when no precedent exists |
-| The date/timestamp values | Overwriting or editing an existing file |
+| The date/timestamp values | Overwriting or editing an existing file, or a filename that would collide with a reserved name |
 
 ## Step 6 — Write the concept
 
@@ -186,7 +198,14 @@ in concept bodies and in `log.md`.
    - plus, when a template was derived:
      `* **Creation**: Derived the [<Type> template](/templates/<slug>.md) from it.`
 4. Bundle-root `log.md` only — not a directory-local `log.md`, even if
-   the target directory maintains one.
+   the target directory maintains one. OKF permits a `log.md` at any
+   level and `bundle-structure.md` says to append to a directory-local
+   one when present; this skill deliberately narrows that to the
+   bundle root, as one predictable place to check for the history of
+   every concept this skill writes. This is house policy for this
+   skill, not an OKF requirement — a bundle that relies on a
+   directory-local log for that directory's history won't see this
+   skill's entries there.
 
 ## Step 10 — Self-check and report
 
@@ -217,7 +236,13 @@ brand-new draft with no `verified` entry, precisely so this case works.
 5. A derived `templates/attested-computation.md` carries a placeholder
    computation only — never a real one, and never an `attester` key.
 6. If the target file already exists with a `verified` entry, stop
-   (already covered by step 4's general refusal).
+   (already covered by step 4's general refusal). This is also why this
+   skill needs no separate rule for okf-spec's extended restriction —
+   once an Attested Computation carries `verified`, changing `runtime`,
+   the `computation` path, or `executor.resource` requires the same
+   human confirmation as `verified` itself. This skill only ever
+   creates new files; step 4's blanket refusal to touch any file with a
+   `verified` entry already makes that restriction unreachable here.
 
 ## Worked example: existing type
 

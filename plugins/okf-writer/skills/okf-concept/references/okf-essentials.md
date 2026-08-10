@@ -98,10 +98,20 @@ Not required, but consistent across bundles: `# Schema`, `# Examples`,
 `# Computation`. Favor structural markdown — headings, lists, tables,
 fenced code blocks — over freeform prose.
 
+## Attested Computation
+
+Drafting one is covered standalone, without `okf-spec`, in
+`authoring-procedure.md`'s "`type: Attested Computation`" section: write
+`status: draft`, ask for the required `runtime`, never invent the
+computation body, and never write `verified`, `attester`, or
+`executor.receipt`. That section is self-contained — read it directly
+rather than relying on this file for those fields.
+
 ## What this file omits
 
 Trust tiers, the `human:` actor prefix, `usage_window`, source
 credibility signals, the `verified`-as-list coercion rule, v0.1→v0.2
-migration, and the Attested Computation field family beyond the
-never-written list above. These are read-only concerns for a creation
-skill — read them from `okf-spec` when it's installed.
+migration, and full Attested Computation field semantics (`parameters`
+typing, `executor` shape, `attester` verdict codes) beyond what's needed
+to draft one, above. These are read-only concerns for a creation skill —
+read them from `okf-spec` when it's installed.
