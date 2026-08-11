@@ -110,7 +110,10 @@ Bundle root only.
    absent.
 2. Today's `## YYYY-MM-DD` heading: if present, append bullets at the
    end of its block; if absent, insert it immediately after the H1,
-   above all existing date headings (newest first).
+   above all existing date headings (newest first) — no blank line
+   between the heading and its first bullet, matching `okf-concept`'s
+   `log.md` convention exactly (see its worked examples in
+   `authoring-procedure.md`).
 3. One bullet per installed template, bundle-root-relative link:
    `* **Creation**: Installed the [<Type> template](/templates/<slug>.md) from the okf-type-library catalog.`
 
