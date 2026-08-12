@@ -8,6 +8,7 @@ application. Each `plugins/<name>/` is an independently installable plugin;
 
 ```
 .claude-plugin/marketplace.json     # marketplace manifest: name, owner, plugins[]
+docs/                                # guides for users consuming the marketplace, not a plugin's own docs
 plugins/<name>/
   .claude-plugin/plugin.json        # plugin manifest: name, description, userConfig
   README.md                         # user-facing behaviour docs

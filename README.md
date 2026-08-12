@@ -119,6 +119,9 @@ precedence and conflict rules.
    `okf-writer` installed, it writes the concept and keeps `index.md` and
    `log.md` in sync.
 
+Next: [wiring a spec-first workflow into your project's
+`CLAUDE.md`](docs/spec-driven-workflow.md).
+
 ## Roadmap
 
 - `okf-driven-dev` — spec-driven development workflow built on OKF. Not yet
