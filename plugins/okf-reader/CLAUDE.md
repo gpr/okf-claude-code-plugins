@@ -12,7 +12,7 @@ this file covers what breaks when you edit the implementation.
 - `bin/okf-reader-preview` — subprocess wrapper around the hook; exits 1 on
   empty output, so it doubles as a CI check that a project's bundles resolve
 - `agents/okf-search.md` — haiku search agent named in the hook's injected
-  `RULES` text
+  `RULES` text; restates spec vocabulary, see below
 - `examples/` — `okf.json` is referenced directly by `README.md`; `spec/` is a
   standalone fixture demonstrating the `okf_version` marker (mirrors the
   inline example in `README.md`'s Auto-discovery section but isn't itself
@@ -42,6 +42,20 @@ An edit must not violate any of these:
   discovered (auto-discovery) → external (`okf.json`). Don't reorder without
   updating `README.md` and
   `test_precedence_standards_then_discovered_then_external`.
+
+## `agents/okf-search.md` restates spec vocabulary
+
+The agent states OKF format semantics inline: the `status` values
+(`draft | stable | deprecated`, absent ⇒ `stable`) and the Concept ID
+definition (a concept's path within the bundle, `.md` dropped). This
+duplication is deliberate — okf-reader must work without `okf-core`, so the
+agent can't defer to `okf-spec`.
+
+`okf-spec`'s `references/trust-and-provenance.md` (lifecycle) and its
+`SKILL.md` "What OKF is" (Concept ID) are authoritative and win on any
+disagreement. Change both together. Nothing mechanical catches drift here:
+`tests/` covers `okf_context.py`, never agent prose — this file drifted to a
+dead `Accepted`/`Implemented` vocabulary once already.
 
 ## Adding a `userConfig` key
 
