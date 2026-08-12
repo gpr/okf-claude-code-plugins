@@ -92,8 +92,10 @@ spec/
 ├── log.md               # dated changelog, newest first
 ├── conventions/         # binding project rules — type: Convention
 ├── specifications/      # type: Specification — the unit spec-first gates on
-├── decisions/           # type: ADR (not adrs/ — this is the one named exception)
+├── requirements/        # type: Requirement
 ├── plan-items/          # type: Plan Item
+├── decisions/           # type: ADR (not adrs/ — this is the one named exception)
+├── test-plans/          # type: Test Plan
 └── templates/
     ├── index.md          # the type registry: link text = type name, target = skeleton
     └── <slug>.md          # type: Template, one per type in use
@@ -160,9 +162,10 @@ refuse to write into a `standards` bundle without asking first.
 2. Ask Claude: *"set up the concept types for spec-driven development."*
    `okf-type-library` installs the `spec-driven` preset (Specification,
    Requirement, Plan Item, ADR, Test Plan) into `spec/templates/`.
-3. Ask Claude: *"install a template for Convention."* `Convention` is in no
-   preset, so it needs naming explicitly if you want `spec/conventions/` as
-   described in §3.
+3. Ask Claude: *"install a template for Convention."* `Convention` isn't in
+   the `spec-driven` preset installed in step 2 (it ships with `stack`
+   instead — Technology, Dependency, Convention), so it needs naming
+   explicitly if you want `spec/conventions/` as described in §3.
 4. Paste the [§2](#2-the-block) block into `CLAUDE.md`, then **restart
    Claude Code (or `/clear`)** so `okf-reader`'s `SessionStart` hook picks up
    the new bundle.
@@ -178,8 +181,10 @@ A worked example, end to end:
    Specification for search-result caching" — and stops for your approval
    before writing any code.
 4. You approve (possibly after editing `# Scope` or `# Acceptance`).
-   `okf-concept` writes `spec/specifications/search-result-caching.md`,
-   updates `spec/specifications/index.md`, and appends to `spec/log.md`.
+   `okf-concept` writes `spec/specifications/search-result-caching.md` and
+   updates `spec/specifications/index.md` — creating that directory and
+   linking it from the bundle-root `spec/index.md`, since this is the first
+   Specification — then appends to `spec/log.md`.
 5. Claude implements against the concept's `# Acceptance` bullets — they
    double as the change's done-criteria, so the gate isn't pure ceremony.
 6. Before reporting done, Claude updates the concept if the implementation
