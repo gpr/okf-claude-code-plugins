@@ -1,2 +1,6 @@
 __pycache__/
 *-workspace/
+# Claude Code
+.claude/worktrees/
+.claude/plans/
+.claude/settings.local.json
