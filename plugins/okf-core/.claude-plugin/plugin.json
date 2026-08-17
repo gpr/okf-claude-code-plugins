@@ -1,7 +1,7 @@
 {
   "name": "okf-core",
   "description": "Shared Open Knowledge Format (OKF) knowledge for OKF plugins.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "OKF Core",
   "author": {
     "name": "Gregory Romé",
