@@ -41,6 +41,6 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Decided in: [<ADR title>](/decisions/<slug>.md)
+- Decided in: [<ADR title>](/adrs/<slug>.md)
 - Pinned by: [<dependency title>](/dependencies/<slug>.md)
 - Runs in: [<environment title>](/environments/<slug>.md)

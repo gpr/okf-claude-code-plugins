@@ -4,7 +4,7 @@
     {
       "id": 0,
       "name": "spec-driven-empty-bundle",
-      "prompt": "I'm starting spec-driven development on this project. Set up an OKF bundle at ./spec with the concept types I'll need. Build the bundle under a throwaway temp directory (e.g. $TMPDIR/okf-eval-0), never inside this repository.",
+      "prompt": "I'm starting spec-driven development on this project. Set up an OKF bundle at ./spec with the concept types I'll need.",
       "expected_output": "Creates ./spec as a bundle root (index.md with okf_version: \"0.2\"), installs the spec-driven preset (Specification, Requirement, Plan Item, ADR, Test Plan) into spec/templates/, registers all 5 in spec/templates/index.md, links templates/ from the root index.md, and logs the creations in spec/log.md.",
       "files": [],
       "expectations": [
@@ -14,14 +14,18 @@
         "spec/templates/index.md exists with H1 '# Templates' and one entry per installed type, link text matching each file's fence type: value",
         "spec/log.md exists with H1 '# Directory Update Log' and today's dated section listing all 5 creations",
         "spec/index.md exists with okf_version: \"0.2\" and links to templates/",
-        "The agent asked at most one confirmation before writing, not one per file"
+        "The agent asked at most one confirmation before writing, not one per file",
+        "Nothing is written outside $EVAL_DIR"
+      ],
+      "setup": [
+        "mkdir -p \"$EVAL_DIR\""
       ]
     },
     {
       "id": 1,
       "name": "vague-intent-existing-bundle",
-      "prompt": "Seed my knowledge bundle with some useful starter templates. The bundle already exists — I'll tell you where it is if you ask, or you can find it under the temp directory I set up for this task.",
-      "expected_output": "Given a pre-existing bundle at spec/ with index.md, log.md (one older dated section), templates/index.md + templates/adr.md, and decisions/choose-duckdb.md (type: ADR): selects the minimal preset (Specification, ADR, Plan Item) since intent is vague, skips ADR because it already exists (reports the skip, doesn't drop it silently), writes only Specification and Plan Item, and inserts today's log.md section above the older one.",
+      "prompt": "Seed my knowledge bundle with some useful starter templates.",
+      "expected_output": "Given a pre-existing bundle at spec/ with index.md, log.md (one older dated section), templates/index.md + templates/adr.md, and adrs/choose-duckdb.md (type: ADR): selects the minimal preset (Specification, ADR, Plan Item) since intent is vague, skips ADR because it already exists (reports the skip, doesn't drop it silently), writes only Specification and Plan Item, and inserts today's log.md section above the older one.",
       "files": [],
       "expectations": [
         "Only specification.md and plan-item.md are newly written under spec/templates/",
@@ -29,20 +33,35 @@
         "spec/templates/index.md still contains its pre-existing ADR entry plus 2 new entries",
         "spec/log.md has today's dated section inserted above the pre-existing older dated section",
         "The agent's response explicitly reports that ADR was skipped because it already exists"
+      ],
+      "setup": [
+        "mkdir -p \"$EVAL_DIR\"",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/index.md\")\" && cat > \"$EVAL_DIR/spec/index.md\" <<'OKF_EOF'\n---\nokf_version: \"0.2\"\n---\n\n# Spec\n\n* [Templates](templates/) - Concept skeletons, one per type.\n* [ADRs](adrs/) - Architecture decision records.\nOKF_EOF",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/log.md\")\" && cat > \"$EVAL_DIR/spec/log.md\" <<'OKF_EOF'\n# Directory Update Log\n\n## 2026-08-01\n* **Creation**: Added the [Choose DuckDB](/adrs/choose-duckdb.md) ADR concept.\nOKF_EOF",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/templates/index.md\")\" && cat > \"$EVAL_DIR/spec/templates/index.md\" <<'OKF_EOF'\n# Templates\n\n* [ADR](adr.md) - One architectural decision, its forces, and its cost.\nOKF_EOF",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/templates/adr.md\")\" && cat > \"$EVAL_DIR/spec/templates/adr.md\" <<'OKF_EOF'\n---\ntype: Template\ntitle: ADR template\ndescription: One architectural decision, its forces, and its cost.\nstatus: draft\ngenerated: { by: claude-code/claude-opus-5, at: 2026-08-01T09:00:00Z }\n---\n\nSkeleton for `type: ADR` concepts — one architectural decision, the\nforces behind it, and what it costs. Copy the fence below into a new\nfile's frontmatter, then fill the body headings. Resolve every\n`<placeholder>` or delete its line.\n\n```yaml\ntype: ADR\ntitle: <the decision, stated as an action>\ndescription: <one sentence recording what was decided and why>\ntags: [<tag>, <tag>]\nstatus: draft\ngenerated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }\n```\n\n# Context\n\n<what forced the decision — a constraint, an incident, or a requirement>\n\n# Options considered\n\n| Option | Why it was not chosen |\n|---|---|\n| <option> | <reason> |\n\n# Decision\n\n<the decision, one sentence, present tense>\n\n# Consequences\n\n- <what gets better>\n- <what gets worse>\n\n# Traceability\n\n- Decides for: [<specification title>](/specifications/<slug>.md)\n- Selects: [<technology title>](/technologies/<slug>.md)\n- Supersedes: [<earlier ADR title>](/adrs/<slug>.md)\nOKF_EOF",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/adrs/index.md\")\" && cat > \"$EVAL_DIR/spec/adrs/index.md\" <<'OKF_EOF'\n# ADRs\n\n* [Choose DuckDB](choose-duckdb.md) - Records the decision to run local analytical queries on DuckDB instead of SQLite.\nOKF_EOF",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/adrs/choose-duckdb.md\")\" && cat > \"$EVAL_DIR/spec/adrs/choose-duckdb.md\" <<'OKF_EOF'\n---\ntype: ADR\ntitle: Choose DuckDB\ndescription: Records the decision to run local analytical queries on DuckDB instead of SQLite.\nstatus: draft\ngenerated: { by: claude-code/claude-opus-5, at: 2026-08-01T09:05:00Z }\n---\n\n# Decision\n\nAdopt DuckDB for local analytical queries.\nOKF_EOF"
       ]
     },
     {
       "id": 2,
       "name": "named-types-backfill",
-      "prompt": "Add Technology and Dependency templates to the spec/ bundle so I can record our stack choices and the versions we pin. The bundle is under the temp directory set up for this task.",
-      "expected_output": "Given spec/index.md and spec/templates/adr.md present but no spec/templates/index.md: installs exactly Technology and Dependency (no preset expansion since types were named explicitly), creates templates/index.md with a back-filled ADR entry (reading its canonical type from adr.md's fence) plus the two new entries, and each new template's Traceability section references the cross-link directories from references/traceability.md (technology.md links /decisions/, dependency.md links /technologies/).",
+      "prompt": "Add Technology and Dependency templates to the spec/ bundle so I can record our stack choices and the versions we pin.",
+      "expected_output": "Given spec/index.md and spec/templates/adr.md present but no spec/templates/index.md: installs exactly Technology and Dependency (no preset expansion since types were named explicitly), creates templates/index.md with a back-filled ADR entry (reading its canonical type from adr.md's fence) plus the two new entries, and each new template's Traceability section references the cross-link directories from references/traceability.md (technology.md links /adrs/, dependency.md links /technologies/).",
       "files": [],
       "expectations": [
         "Exactly technology.md and dependency.md are written under spec/templates/ — no other type installed",
         "spec/templates/index.md is created and contains 3 entries: a back-filled ADR entry plus Technology and Dependency",
         "The back-filled ADR entry's link text matches the canonical type string inside spec/templates/adr.md's fence",
-        "technology.md's Traceability section links a /decisions/ path; dependency.md's links a /technologies/ path"
+        "technology.md's Traceability section links an /adrs/ path; dependency.md's links a /technologies/ path"
+      ],
+      "setup": [
+        "mkdir -p \"$EVAL_DIR\"",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/index.md\")\" && cat > \"$EVAL_DIR/spec/index.md\" <<'OKF_EOF'\n---\nokf_version: \"0.2\"\n---\n\n# Spec\nOKF_EOF",
+        "mkdir -p \"$(dirname \"$EVAL_DIR/spec/templates/adr.md\")\" && cat > \"$EVAL_DIR/spec/templates/adr.md\" <<'OKF_EOF'\n---\ntype: Template\ntitle: ADR template\ndescription: One architectural decision, its forces, and its cost.\nstatus: draft\ngenerated: { by: claude-code/claude-opus-5, at: 2026-08-01T09:00:00Z }\n---\n\nSkeleton for `type: ADR` concepts — one architectural decision, the\nforces behind it, and what it costs. Copy the fence below into a new\nfile's frontmatter, then fill the body headings. Resolve every\n`<placeholder>` or delete its line.\n\n```yaml\ntype: ADR\ntitle: <the decision, stated as an action>\ndescription: <one sentence recording what was decided and why>\ntags: [<tag>, <tag>]\nstatus: draft\ngenerated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }\n```\n\n# Context\n\n<what forced the decision — a constraint, an incident, or a requirement>\n\n# Options considered\n\n| Option | Why it was not chosen |\n|---|---|\n| <option> | <reason> |\n\n# Decision\n\n<the decision, one sentence, present tense>\n\n# Consequences\n\n- <what gets better>\n- <what gets worse>\n\n# Traceability\n\n- Decides for: [<specification title>](/specifications/<slug>.md)\n- Selects: [<technology title>](/technologies/<slug>.md)\n- Supersedes: [<earlier ADR title>](/adrs/<slug>.md)\nOKF_EOF"
       ]
     }
-  ]
+  ],
+  "fixture_note": "Each eval's `setup` is a list of shell commands that build its fixture under $EVAL_DIR (a fresh throwaway directory such as $TMPDIR/okf-eval-<id>, never inside this repository: an okf_version marker under plugins/ would be auto-discovered by okf-reader). Run them, then run the prompt with $EVAL_DIR as the working directory."
 }

@@ -58,10 +58,13 @@ don't quote them back as spec.
   `claude-code/<model-id>` (e.g. `claude-code/claude-opus-5`). §7 only
   defines the grammar `<producer>/<version>`; this pins the literal so
   bundles written by these plugins stay internally consistent.
-- **Timestamps:** `generated.at` and `verified[].at` are RFC 3339, UTC,
-  with a `Z` suffix (`2026-08-09T14:30:00Z`). Date-only fields
-  (`stale_after`, `sources[].last_modified`, `usage_window`) are
-  `YYYY-MM-DD`.
+- **Timestamps:** every time-valued field — `generated.at`,
+  `verified[].at`, `stale_after`, `sources[].last_modified`, and
+  `usage_window.from`/`to` — is written RFC 3339, UTC, with a `Z` suffix
+  (`2026-08-09T14:30:00Z`). §5 defines all of them as datetimes or
+  instants; this pins the UTC/`Z` form. When *reading* a legacy
+  date-only value (`stale_after: 2026-09-23`), treat it as that day's
+  `00:00:00Z`.
 - If a bundle's `index.md` declares an `okf_version` other than `0.2`,
   say so explicitly and read `references/conformance.md` before assuming
   field semantics — v0.1 renamed or dropped some fields (§13).
@@ -80,7 +83,7 @@ don't quote them back as spec.
 | `generated` | any concept | `{by, at}` — who/when last wrote the content | `trust-and-provenance.md` |
 | `verified` | any concept | list of `{by, at}` confirmation events | `trust-and-provenance.md` |
 | `status` | any concept | `draft \| stable \| deprecated`, default `stable` | `trust-and-provenance.md` |
-| `stale_after` | any concept | absolute date; stale on/after it | `trust-and-provenance.md` |
+| `stale_after` | any concept | absolute instant; stale when `now >=` it | `trust-and-provenance.md` |
 | `runtime` | Attested Computation | required; how to run it (`bigquery`, `dbt`, ...) | `attested-computation.md` |
 | `parameters` | Attested Computation | typed named holes: `{name, type, required}` | `attested-computation.md` |
 | `computation` | Attested Computation | path to computation file, instead of inline fence | `attested-computation.md` |
@@ -129,8 +132,10 @@ okf_version: "0.2"
 
 Read the matching reference before answering. Do not answer OKF field
 questions from the cheat sheet above — it is an index, not a
-specification. Read at most two references for one task. Paths are
-relative to this skill's directory.
+specification. Read only the references the task needs — usually one
+or two. Validating a bundle is the exception: `validation-checklist.md`
+names the other references its checks depend on. Paths are relative to
+this skill's directory.
 
 ## Scope
 

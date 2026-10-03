@@ -61,12 +61,13 @@ explicit name or `all` only.
 
 ## Procedure
 
-Full detail in `references/install-procedure.md` — read it before
+Step numbers match `references/install-procedure.md` — read it before
 writing files.
 
 1. **Find the bundle root.** Same resolution as `okf-concept`: use
    okf-reader's injected table if present, else scan for `index.md`
-   declaring `okf_version`. Ambiguous or trusted-bundle-only: ask.
+   declaring `okf_version`, with okf-reader's depth and skip rules.
+   Ambiguous or trusted-bundle-only: ask.
 2. **Read the existing registry** — `templates/index.md`, or
    `templates/*.md` if no index, plus `type:` values already in use.
 3. **Select.** Named types win over a preset; a preset phrase wins over
@@ -85,9 +86,13 @@ writing files.
 7. **Update the bundle-root `index.md`** if `templates/` is new.
 8. **Append to the bundle-root `log.md`** — one `**Creation**` bullet
    per installed template.
+9. **Self-check and report** every file written and every type skipped,
+   and confirm no `<placeholder>` survived in any written file's own
+   frontmatter.
 
-Then report every file written and every type skipped, and confirm no
-`<placeholder>` survived in any written file's own frontmatter.
+`okf-concept` also calls this skill for a single catalogued type, after
+its own confirm: that mode skips steps 1–4 and runs 5–9 for the one type
+(see the install procedure's "Single-type mode").
 
 ## Ask vs. decide
 
@@ -106,10 +111,10 @@ installer only ever transcribes the asset's own bytes plus a fresh
 
 ## Traceability
 
-The 5 requested types plus Test Plan form a spine
-(`Specification → Requirement → Plan Item → ADR → Technology →
-Dependency`) pre-wired with a `# Traceability` heading in every
-skeleton. Full graph and the `/decisions/` directory-hint exception:
+Every skeleton is pre-wired with a `# Traceability` heading (Glossary
+Term: `# Related terms`). The spine is `Specification → Requirement →
+Plan Item → ADR → Technology → Dependency`, with Test Plan verifying
+Requirements and Plan Items. Full graph and directory hints:
 `references/traceability.md`.
 
 ## Task → reference

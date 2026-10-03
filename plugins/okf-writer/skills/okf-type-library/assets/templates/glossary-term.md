@@ -38,4 +38,4 @@ definition>
 
 # Related terms
 
-- [<related term>](/glossary/<slug>.md)
+- [<related term>](/glossary-terms/<slug>.md)

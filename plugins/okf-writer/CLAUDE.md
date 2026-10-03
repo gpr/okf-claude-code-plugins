@@ -16,8 +16,10 @@ edit it.
 ## File map
 
 - `skills/okf-concept/SKILL.md` — frontmatter `description` (the trigger
-  phrase Claude matches to decide when to load this skill) plus the 10-step
-  procedure outline and the ask-vs-decide table
+  phrase Claude matches to decide when to load this skill) plus the 11-step
+  procedure outline and the ask-vs-decide table. Its step numbers match
+  `authoring-procedure.md`'s; keep them in lockstep, since other files
+  cite steps by number
 - `skills/okf-concept/references/authoring-procedure.md` — the procedure in
   full: bundle-root resolution, type matching, directory/filename rules,
   frontmatter fill rules, index/log insertion, Attested Computation, the
@@ -37,6 +39,8 @@ edit it.
   the `# Traceability` heading convention, directory hints
 - `skills/okf-type-library/assets/templates/*.md` — the 16 ready-made
   `type: Template` files themselves, one per catalog entry
+- `skills/okf-type-library/evals/evals.json` — three evals; each carries
+  `setup` commands that build its fixture under `$EVAL_DIR`
 
 ## Scope boundary
 
@@ -45,9 +49,11 @@ edit it.
 - Format semantics (frontmatter fields, trust tiers, conformance) →
   `okf-core`'s job. `okf-essentials.md` restates only the byte-level rules
   needed to emit conformant files; it does not duplicate `okf-spec`.
-- Bundle discovery, precedence, `okf.json` → `okf-reader`'s job. Step 0 of
+- Bundle discovery, precedence, `okf.json` → `okf-reader`'s job. Step 1 of
   the procedure uses okf-reader's injected bundle table when present, but
-  falls back to its own `okf_version` scan so it still works alone.
+  falls back to its own `okf_version` scan — same depth, skip-list, and
+  fallback directories as okf-reader's — so it still works alone. If
+  okf-reader's discovery rules change, update both fallback scans.
 
 Claude Code has no inter-plugin dependency mechanism, so nothing enforces
 co-installation. **Never reference a path under `plugins/okf-core/`** —
@@ -78,7 +84,7 @@ A `templates/<type>.md` file's own frontmatter is always `type: Template`.
 The target type's skeleton lives in a fenced code block in the body, never
 as a second `---` block. If a template opened with the target type's
 frontmatter, any OKF consumer (including this skill's own type-vocabulary
-scan in step 1) would index it as a real concept of that type. Step 1 of
+scan in step 2) would index it as a real concept of that type. Step 2 of
 the procedure also explicitly excludes `<root>/templates/` when collecting
 existing concept types from the bundle, for the same reason.
 
@@ -111,33 +117,47 @@ deliberate: transcribing rather than composing frontmatter makes the
 
 ## Bundle-root resolution is stated twice
 
-`okf-concept/references/authoring-procedure.md` §Step 0 and
+`okf-concept/references/authoring-procedure.md` §Step 1 and
 `okf-type-library/references/install-procedure.md` §Step 1 both restate
 the same bundle-root resolution logic, deliberately not cross-referenced
 across skill directories — each skill's docs state "paths are relative
-to this skill's directory," and `okf-concept`'s file is 369 lines to
-`okf-type-library`'s 20-line restatement. If the two disagree,
-`okf-concept`'s is authoritative (the longer form). Change both together.
+to this skill's directory." If the two disagree, `okf-concept`'s is
+authoritative. Change both together.
+
+## The two skills call each other at one point
+
+`okf-concept` step 4 checks `okf-type-library`'s catalog only for a type
+that is new to the bundle (a type already in use with no template is
+derived from the bundle's own concepts instead). Step 7, after the
+confirm, invokes the installer's "Single-type mode", which skips the
+installer's own selection and confirm. Change both sides together: the
+installer's skip-list would otherwise reject a type `okf-concept` sent
+it.
 
 ## No test suite
 
 Unlike `okf-reader`, there's no `tests/` here — a skill's content isn't
 executable code to unit-test. Verify changes by reading the skill against
 [OKF SPEC.md v0.2](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md)
-and by the manual walkthrough in `README.md`'s parent plan / this plugin's
-verification steps — a throwaway bundle **outside** this repo, never a
-fixture under `plugins/okf-writer/examples/`: an `okf_version` marker there
+and by a manual walkthrough in a throwaway bundle **outside** this repo,
+never a fixture under `plugins/okf-writer/examples/`: an `okf_version` marker there
 would be auto-discovered by `okf-reader` in this repo and change its
 documented token budget (see `plugins/okf-reader/CLAUDE.md`). The same
-applies to `okf-type-library`'s eval fixtures — build them under
-`$TMPDIR`, never under `plugins/`.
+applies to `okf-type-library`'s eval fixtures — their `setup` commands
+build them under `$EVAL_DIR` (a `$TMPDIR` directory), never under
+`plugins/`.
+
+The worked examples are the closest thing to tests: models copy them
+more readily than they follow the rules. After changing a rule (slug,
+`norm()`, directory choice), re-derive each worked example's filenames
+and directories from the rule, by hand.
 
 ## Manifest sync
 
 Same three-place rule as the rest of this repo (root `CLAUDE.md`
 "Adding or renaming a plugin"): `plugin.json` `name`/`description`,
-`marketplace.json`'s `plugins[]` entry, and the root `README.md` bullet.
-Sanity-check with:
+`marketplace.json`'s `plugins[]` entry, and the root `README.md` plugins
+table. Sanity-check with:
 
 ```
 jq . .claude-plugin/marketplace.json plugins/*/.claude-plugin/plugin.json

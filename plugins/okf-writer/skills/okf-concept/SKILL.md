@@ -14,46 +14,54 @@ its `templates/<type>.md` skeleton, writes the concept, and keeps
 Given a request naming a concept to add, this skill finds the bundle, works
 out whether the requested type already exists, fills in (or invents) a
 skeleton, writes one file, and updates the bookkeeping files a bundle
-depends on for discovery — the two steps `bundle-structure.md` calls out as
-"commonly forgotten": adding the concept to its directory's `index.md`, and
-logging the change.
+depends on for discovery — the two steps `okf-spec`'s
+`bundle-structure.md` calls out as "commonly forgotten": adding the
+concept to its directory's `index.md`, and logging the change.
 
 ## Procedure
 
-Steps 1–6 write nothing. Full detail for every step is in
-`references/authoring-procedure.md` — read it before writing files.
+Step numbers match `references/authoring-procedure.md` — read it before
+writing files. Steps 1–6 read and decide only; every write comes after
+the confirm at step 6.
 
 1. **Find the bundle root.** Use okf-reader's injected bundle table if
-   present; otherwise find directories whose `index.md` declares
-   `okf_version`. Zero found, more than one found and ambiguous, or the
-   sole candidate is the trusted (`standards_bundle`) bundle: ask.
+   present; otherwise scan for directories whose `index.md` declares
+   `okf_version`, with okf-reader's depth and skip rules. Zero found,
+   more than one found and ambiguous, or the sole candidate is the
+   trusted (`standards_bundle`) bundle: ask.
 2. **Read the type vocabulary.** `<root>/templates/index.md` is the
    registry — link text is the canonical `type`, link target is
    `templates/<slug>.md`. Add the `type:` values of existing concepts
    outside `templates/`.
 3. **Identify the `type`.** Compare `norm(requested)` against each known
-   type. Exact match: reuse the bundle's spelling, no question. Acronym
-   or containment near-match: ask existing-vs-new. No match: new type.
-4. **Load the skeleton** from `templates/<slug>.md` — its body fence
-   becomes the new frontmatter, its headings become the new body. No
-   template, but `okf-type-library` catalogs this type: install that
-   one template (not a preset) and load it; the run is not
-   new-template. Neither: invent the skeleton and mark the run
-   new-template.
-5. **Choose directory and filename.** Follow existing concepts of this
-   type; else `<root>/<plural-slug>/`; else `<root>/`. Filename is
-   `slug(title).md`; if that slugs to `index` or `log`, ask for a
-   different title instead. Never overwrite.
-6. **Confirm once.** Show root, type (existing or new), path, title,
-   description, and whether a template will be derived.
-7. **Write the concept.** Set `type`, `title`, `description`,
-   `status: draft`, `generated`. Resolve or delete every
-   `<placeholder>`; delete headings with nothing under them.
-8. **New type only — derive `templates/<slug>.md` afterwards.** The type
-   value and the headings stay; values and prose become placeholders.
-   Its own frontmatter is `type: Template`; the skeleton is a fenced
-   code block in the body, never a second `---` block. Add its entry
-   to `templates/index.md`.
+   type; the first pass with a hit decides. Exact match: reuse the
+   bundle's spelling, no question. Acronym or containment near-match:
+   ask existing-vs-new (one question, even with several hits). No match:
+   new type.
+4. **Choose the skeleton source** — decide only, write nothing. In
+   order: the type's template; else, if the type is in use with no
+   template, derive from its newest concept (mark new-template); else,
+   if `okf-type-library` catalogs it, plan to install that one template
+   (mark catalog-install, not new-template); else invent it (mark
+   new-template).
+5. **Choose directory and filename.** User-named directory; else follow
+   existing concepts of this type; else `<root>/<plural-slug>/` in a
+   foldered bundle of 5+ concepts; else `<root>/`. The last two are
+   flagged *no precedent* at the confirm. Filename is `slug(title).md`;
+   if that slugs to `index` or `log`, ask for a different title
+   instead. Never overwrite.
+6. **Confirm once.** Show root, type (existing or new), path (flagged if
+   no precedent), title, description, and the skeleton source.
+7. **Write the concept.** On catalog-install, first install the one
+   template via `okf-type-library`'s single-type mode. Set `type`,
+   `title`, `description`, `status: draft`, `generated`. Resolve or
+   delete every `<placeholder>`; delete headings with nothing under them.
+8. **New template only — derive `templates/<slug>.md` afterwards.** The
+   type value and the headings stay; values and prose become
+   placeholders. Its own frontmatter is `type: Template`; the skeleton
+   is a fenced code block in the body, never a second `---` block. Add
+   its entry to `templates/index.md`, back-filling the index if it is
+   new.
 9. **Update indexes.** The concept's own directory `index.md` (create if
    missing); the parent chain only when a directory is new. Entries are
    `* [Title](relative-path) - description`, description copied from the
@@ -63,8 +71,8 @@ Steps 1–6 write nothing. Full detail for every step is in
     goes directly under the H1, above older dates. One `**Creation**`
     bullet for the concept, one more for a derived template, both with
     `/`-rooted links.
-
-Then report every file written and confirm no `<placeholder>` survived.
+11. **Self-check and report** every file written, and confirm no
+    `<placeholder>` survived.
 
 ## Ask vs. decide
 
@@ -72,7 +80,7 @@ Then report every file written and confirm no `<placeholder>` survived.
 |---|---|
 | Slug mechanics, index/log formatting, insertion position | Which bundle, when more than one is found and the request is ambiguous, or when the sole candidate is the trusted bundle |
 | Which frontmatter keys to include | Existing-vs-new on an acronym/containment hit |
-| Which template headings to keep or drop | Target directory when no precedent exists |
+| Which template headings to keep or drop | Target directory when no precedent exists — shown at the confirm, flagged |
 | The date/timestamp values | Overwriting or editing an existing file, or a filename that would collide with a reserved name |
 
 ## Never written by this skill

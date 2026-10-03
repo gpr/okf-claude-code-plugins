@@ -18,8 +18,8 @@ sources:
     title: GA4 BigQuery Export schema
     author: team:ga4-docs
     usage_count: 5000
-    last_modified: 2026-05-30
-usage_window: { from: 2026-06-01, to: 2026-06-30 }
+    last_modified: 2026-05-30T00:00:00Z
+usage_window: { from: 2026-06-01T00:00:00Z, to: 2026-06-30T00:00:00Z }
 ```
 
 Each `sources` entry:
@@ -49,11 +49,11 @@ the signals, not stored:
   concept. Coarse — read it as liveness and trend, not a precise
   cross-kind ranking (a scheduled query's executions and a human's
   deliberate dashboard views don't carry equal weight).
-- `last_modified`: when the source itself last changed (`YYYY-MM-DD`).
+- `last_modified`: when the source itself last changed (a datetime).
   A recency signal, distinct from `generated.at` below, which records
   when the *concept* was written.
 - `usage_window`: written once as a sibling of `sources`, frames every
-  `usage_count` with a `{from, to}` date range. A single entry MAY carry
+  `usage_count` with a `{from, to}` datetime range. A single entry MAY carry
   its own `usage_window` to override the shared one.
 
 Lineage is expressed through links, not a dedicated field: when a
@@ -136,12 +136,12 @@ Absent `status` ⇒ `stable`.
 ## Lifecycle: `stale_after`
 
 ```yaml
-stale_after: 2026-09-23   # absolute date; content is stale on/after this day
+stale_after: 2026-09-23T00:00:00Z   # content is stale on/after this instant
 ```
 
-Optional absolute date (`YYYY-MM-DD`). A concept is stale when
-`today >= stale_after`. An absolute date, not a relative TTL, keeps the
-staleness decision a plain date comparison independent of when the
+Optional absolute instant (an ISO 8601 datetime). A concept is stale
+when `now >= stale_after`. An absolute instant, not a relative TTL, keeps
+the staleness decision a plain comparison independent of when the
 concept is read.
 
 ## Actor convention

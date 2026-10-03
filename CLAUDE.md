@@ -17,11 +17,13 @@ plugins/<name>/
 Plugin internals vary by kind — this marketplace has both:
 
 - **Hook-based** (`okf-reader`): `hooks/hooks.json`, `scripts/` (stdlib
-  Python), `agents/`, `bin/` (CLI entry points), `tests/` (unittest),
-  `examples/` (fixtures for the README).
+  Python), `bin/` (CLI entry points), `tests/` (unittest), `examples/`
+  (fixtures for the README).
 - **Skill-only** (`okf-core`, `okf-writer`): `skills/<skill-name>/SKILL.md` +
-  `references/*.md` (+ `assets/` for `okf-writer`'s `okf-type-library`, which
-  ships ready-made template files), no hooks, scripts, or tests.
+  `references/*.md` (+ `assets/` and `evals/` for `okf-writer`'s
+  `okf-type-library`, which ships ready-made template files), no hooks,
+  scripts, or tests. `okf-core` also ships `agents/` (the `okf-search`
+  agent).
 
 ## Adding or renaming a plugin
 
@@ -32,7 +34,7 @@ listing and hook portability"):
 1. `plugins/<name>/.claude-plugin/plugin.json` — `name`, `description`
 2. `.claude-plugin/marketplace.json` `plugins[]` entry — `name`,
    `source: "./plugins/<name>"`, `description` (must match plugin.json)
-3. `README.md` plugin bullet list
+3. `README.md` plugins table (the "What it does" cell)
 
 Update all three together. Sanity-check both manifests still parse:
 

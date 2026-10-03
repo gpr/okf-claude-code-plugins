@@ -17,7 +17,7 @@ title: <the risk, as a short noun phrase>
 description: <one sentence stating the trigger and the impact>
 tags: [<tag>, <tag>]
 status: draft
-stale_after: <YYYY-MM-DD — when this assessment should be revisited>
+stale_after: <RFC 3339 UTC, Z suffix — when this assessment should be revisited>
 generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 ```
 

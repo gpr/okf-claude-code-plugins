@@ -52,7 +52,8 @@ RULES = """\
 - A link starting with `/` is relative to **its own bundle's root**, not the
   filesystem: `/tables/orders.md` in a bundle at `spec/` means `spec/tables/orders.md`
 - Traverse via `index.md` files; read concepts on demand, never preload a bundle
-- To explore a bundle or find a concept by tag, type, description or title, use agent `okf-search`"""
+- To find a concept by tag, type, description or title, use agent `okf-search` if it is
+  available (it ships with okf-core), passing it the bundle table below"""
 
 
 def option(key: str, default: str = "") -> str:
