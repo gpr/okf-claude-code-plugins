@@ -17,6 +17,7 @@ okf_version: "0.2"
 ## Computations
 
 * [Revenue](computations/revenue.md) - Recognized revenue for a fiscal year.
+* [Gross profit](computations/profit.md) - Gross profit by segment for a fiscal year.
 ```
 
 ## A concept with `sources`, `generated`, and `status`
@@ -94,13 +95,14 @@ concept, linked from a narrative concept:
 bundles/finance/
   metrics/income-statement.md      type: Metric  (narrates, links)
   computations/revenue.md          type: Attested Computation
+  computations/profit.md           type: Attested Computation  (runtime: dbt, not shown)
   references/skills/run-on-bq.md
   references/attesters/revenue.py
 ```
 
 `computations/revenue.md`:
 
-```markdown
+````markdown
 ---
 type: Attested Computation
 title: Revenue for fiscal year
@@ -116,7 +118,7 @@ attester:
   resource: references/attesters/revenue.py
 generated: { by: reference_agent/gemini-2.5-pro, at: 2026-06-20T22:53:05Z }
 verified: { by: human:ahormati, at: 2026-06-25T09:00:00Z }
-stale_after: 2026-09-23
+stale_after: 2026-09-23T00:00:00Z
 sources:
   - id: rev-policy
     resource: https://wiki.acme/finance/revenue-recognition
@@ -125,15 +127,17 @@ sources:
 
 # Computation
 
-    SELECT SUM(amount) AS revenue
-    FROM finance.recognized_revenue
-    WHERE fiscal_year = @year
+```sql
+SELECT SUM(amount) AS revenue
+FROM finance.recognized_revenue
+WHERE fiscal_year = @year
+```
 
 The computation binds only the declared `parameters`, per the recognition
 policy.[^rev-policy]
 
 [^rev-policy]: Revenue recognition policy
-```
+````
 
 See `attested-computation.md` for why the computation stands alone and
 what an agent may and may not touch in it.

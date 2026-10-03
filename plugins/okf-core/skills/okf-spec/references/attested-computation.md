@@ -54,7 +54,7 @@ In addition to the provenance/trust/lifecycle families
 What sits behind a `resource` (a Skill, a script, a container) is a
 packaging choice — OKF fixes the interface, not the packaging.
 
-```markdown
+````markdown
 ---
 type: Attested Computation
 title: Revenue for fiscal year
@@ -70,7 +70,7 @@ attester:
   resource: references/attesters/revenue.py
 generated: { by: reference_agent/gemini-2.5-pro, at: 2026-06-20T22:53:05Z }
 verified: { by: human:ahormati, at: 2026-06-25T09:00:00Z }
-stale_after: 2026-09-23
+stale_after: 2026-09-23T00:00:00Z
 sources:
   - id: rev-policy
     resource: https://wiki.acme/finance/revenue-recognition
@@ -79,21 +79,25 @@ sources:
 
 # Computation
 
-    SELECT SUM(amount) AS revenue
-    FROM finance.recognized_revenue
-    WHERE fiscal_year = @year
+```sql
+SELECT SUM(amount) AS revenue
+FROM finance.recognized_revenue
+WHERE fiscal_year = @year
+```
 
 The computation binds only the declared `parameters`, per the recognition
 policy.[^rev-policy]
 
 [^rev-policy]: Revenue recognition policy
-```
+````
 
 ## The computation: inline vs file
 
 - **Inline:** a single fenced code block in the body under
   `# Computation`. Best for a short computation reviewed alongside the
-  contract.
+  contract. SPEC.md's own examples show this block 4-space indented,
+  only because they sit inside an outer markdown fence; write a real
+  triple-backtick fence, as §10.3 specifies and the examples here show.
 - **File:** set `computation` to a path and omit the body fence. Best for
   a long or generated computation, or one already kept as a real file
   shared with non-OKF tooling.
@@ -133,7 +137,7 @@ The runtime artifacts below are **not** stored in the bundle.
    displayed value matches the receipt's authoritative source, re-read
    by job id rather than taken from the agent's text).
 6. **Gate**: refuse to display a failing attestation; warn or refuse
-   when `today >= stale_after`. On success, surface the verdict (e.g. a
+   when `now >= stale_after`. On success, surface the verdict (e.g. a
    link to the job log) so trust is visible.
 
 ## Verification versus attestation

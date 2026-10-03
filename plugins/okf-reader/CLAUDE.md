@@ -11,8 +11,10 @@ this file covers what breaks when you edit the implementation.
 - `hooks/hooks.json` — registers it on `SessionStart`
 - `bin/okf-reader-preview` — subprocess wrapper around the hook; exits 1 on
   empty output, so it doubles as a CI check that a project's bundles resolve
-- `agents/okf-search.md` — haiku search agent named in the hook's injected
-  `RULES` text; restates spec vocabulary, see below
+- `RULES` in `okf_context.py` names the `okf-search` agent, which ships with
+  **okf-core** (`plugins/okf-core/agents/okf-search.md`), not this plugin.
+  okf-reader must work without okf-core installed, so `RULES` says "if it is
+  available" — keep that conditional
 - `examples/` — `okf.json` is referenced directly by `README.md`; `spec/` is a
   standalone fixture demonstrating the `okf_version` marker (mirrors the
   inline example in `README.md`'s Auto-discovery section but isn't itself
@@ -43,20 +45,6 @@ An edit must not violate any of these:
   updating `README.md` and
   `test_precedence_standards_then_discovered_then_external`.
 
-## `agents/okf-search.md` restates spec vocabulary
-
-The agent states OKF format semantics inline: the `status` values
-(`draft | stable | deprecated`, absent ⇒ `stable`) and the Concept ID
-definition (a concept's path within the bundle, `.md` dropped). This
-duplication is deliberate — okf-reader must work without `okf-core`, so the
-agent can't defer to `okf-spec`.
-
-`okf-spec`'s `references/trust-and-provenance.md` (lifecycle) and its
-`SKILL.md` "What OKF is" (Concept ID) are authoritative and win on any
-disagreement. Change both together. Nothing mechanical catches drift here:
-`tests/` covers `okf_context.py`, never agent prose — this file drifted to a
-dead `Accepted`/`Implemented` vocabulary once already.
-
 ## Adding a `userConfig` key
 
 Three edits, all required:
@@ -74,7 +62,7 @@ The default must be repeated identically at every `option()` call site —
 
 The injected block is prepended to every session in a project with a resolved
 bundle. `bin/okf-reader-preview` prints its char and approximate token count
-(~214 tokens on this repo) — check it after changing `RULES` or the table
+(~229 tokens on this repo) — check it after changing `RULES` or the table
 layout in `build_context()`.
 
 ## Tests

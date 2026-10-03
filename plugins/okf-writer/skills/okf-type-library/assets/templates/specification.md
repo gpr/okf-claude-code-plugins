@@ -46,4 +46,4 @@ subsection per externally visible behaviour. No implementation detail.>
 
 - Requirements: [<requirement title>](/requirements/<slug>.md)
 - Plan: [<plan item title>](/plan-items/<slug>.md)
-- Decisions: [<ADR title>](/decisions/<slug>.md)
+- Decisions: [<ADR title>](/adrs/<slug>.md)

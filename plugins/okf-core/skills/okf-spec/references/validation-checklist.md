@@ -29,7 +29,7 @@ validation has gone beyond what was asked.
   that's clearly resource-bound or user-facing.
 - A cross-link (bundle-relative or relative) whose target doesn't exist
   in the bundle.
-- `stale_after` in the past (`today >= stale_after`).
+- `stale_after` in the past (`now >= stale_after`).
 - `status: deprecated` still linked from non-deprecated concepts.
 - A path-valued field (`resource`, `sources[].resource`, `computation`,
   `executor.resource`, `attester.resource`) that doesn't resolve.
@@ -67,6 +67,7 @@ validation has gone beyond what was asked.
 - Reserved-name misuse: `index.md`/`log.md` files containing `^type:`.
 - Bare `verified` mapping (legal, but confirm it's read as one-element
   list downstream, not iterated as a raw string).
-- `stale_after: <date>` — compare against today's date.
+- `stale_after: <instant>` — compare against the current time (a legacy
+  date-only value means that day's `00:00:00Z`).
 - Footnote labels: `\[\^([\w-]+)\]` in the body vs `sources[].id` in
   frontmatter.

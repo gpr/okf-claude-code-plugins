@@ -26,8 +26,9 @@ Specification ──specifies──▶ Requirement ──delivered by──▶ P
 ```
 
 The spine — `Specification → Requirement → Plan Item → ADR → Technology
-→ Dependency` — is the five types the spec-driven-development preset
-installs, plus `Test Plan` for verification.
+→ Dependency` — spans two presets: `spec-driven` installs its first four
+plus `Test Plan` for verification; `stack` and `architecture` cover
+`Technology` and `Dependency`.
 
 ## Convention
 
@@ -48,17 +49,15 @@ this exception is deliberate, not an oversight.
 
 ## Directory hints
 
-Placeholder links use `okf-concept` step 4's `<plural-slug>/` default
-(`/requirements/`, `/plan-items/`, `/test-plans/`, `/technologies/`,
-`/dependencies/`, `/components/`, `/interfaces/`, `/risks/`,
-`/playbooks/`, `/environments/`, `/postmortems/`, `/conventions/`), with
-one named exception: **ADR links use `/decisions/`**, the directory
-`okf-concept`'s own worked examples establish twice
-(`okf-concept/references/authoring-procedure.md`, "Worked example: new
-type").
+Placeholder links use `okf-concept` step 5's `<plural-slug>/` default —
+the slug of the type's English plural — for every type, no exceptions:
+`/specifications/`, `/requirements/`, `/plan-items/`, `/adrs/`,
+`/test-plans/`, `/technologies/`, `/dependencies/`, `/components/`,
+`/interfaces/`, `/risks/`, `/playbooks/`, `/environments/`,
+`/postmortems/`, `/conventions/`, `/glossary-terms/`.
 
 Every one of these paths lives inside a `<placeholder>` line. When a
-bundle files a type somewhere else, `okf-concept` step 6 rewrites or
+bundle files a type somewhere else, `okf-concept` step 7 rewrites or
 deletes the whole line while resolving placeholders — a wrong directory
 hint costs nothing, it's a starting guess, not a constraint.
 

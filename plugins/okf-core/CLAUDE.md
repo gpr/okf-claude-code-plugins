@@ -1,10 +1,11 @@
 # okf-core
 
-Skill-only plugin: no hooks, no `userConfig`, no scripts, no tests. Ships one
-skill, `okf-spec` — the authoritative reference for OKF v0.2 format semantics
+No hooks, no `userConfig`, no scripts, no tests. Ships one skill,
+`okf-spec` — the authoritative reference for OKF v0.2 format semantics
 (bundle structure, frontmatter, trust/provenance, cross-linking, Attested
-Computation, conformance). User-facing scope is in `README.md`; this file
-covers what breaks when you edit it.
+Computation, conformance) — and one agent, `okf-search`, which locates and
+quotes concepts across a project's bundles. User-facing scope is in
+`README.md`; this file covers what breaks when you edit it.
 
 ## File map
 
@@ -13,6 +14,9 @@ covers what breaks when you edit it.
   invariants and house rules
 - `skills/okf-spec/references/*.md` (8 files) — one topic each, loaded only
   when `SKILL.md` routes to them (progressive disclosure)
+- `agents/okf-search.md` — haiku search agent. okf-reader's injected `RULES`
+  text names it conditionally ("if it is available"), because okf-reader
+  must work without okf-core installed
 
 ## Scope boundary
 
@@ -40,6 +44,23 @@ it may not be installed.
 - The "Rules for this agent" section is house policy for this plugin set, not
   OKF spec text. Keep that distinction explicit in wording; don't let house
   policy get quoted back as if it were normative SPEC.md content.
+
+## `agents/okf-search.md` restates spec vocabulary
+
+The agent states OKF format semantics inline: the `status` values
+(`draft | stable | deprecated`, absent ⇒ `stable`) and the Concept ID
+definition (a concept's path within the bundle, `.md` dropped). The agent
+runs with only Read/Grep/Glob and a short prompt, so it doesn't load
+`okf-spec` — the restatement is what it actually sees.
+
+`okf-spec`'s `references/trust-and-provenance.md` (lifecycle) and its
+`SKILL.md` "What OKF is" (Concept ID) are authoritative and win on any
+disagreement. Change both together. Nothing mechanical catches drift here —
+this file drifted to a dead `Accepted`/`Implemented` vocabulary once already.
+
+The agent must not assume okf-reader is installed either: when the caller
+passes no bundle table, it finds bundle roots itself by the `okf_version`
+marker.
 
 ## No test suite
 

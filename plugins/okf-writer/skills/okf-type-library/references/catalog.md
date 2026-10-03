@@ -26,9 +26,11 @@ colliding with each other or with `okf-concept`'s type-matching rules
 | `Attested Computation` | `attested-computation` | `attested-computation` | A sanctioned computation, drafted for human attestation. |
 
 Each asset's own frontmatter `description:` is byte-identical to its
-one-liner above — `okf-concept` step 7 already copies a concept's
-`description` into its `templates/index.md` entry, so matching that
-convention keeps one source of truth instead of two strings that drift.
+one-liner above, and the installer copies that same string into the
+type's `templates/index.md` entry (install procedure step 6) — one
+source of truth instead of two strings that drift. (Templates that
+`okf-concept` derives use a fixed `Skeleton for <Type> concepts.` line
+instead; the two kinds of entry can sit in one index.)
 
 ## Why none of these 16 collide
 
@@ -37,7 +39,8 @@ convention keeps one source of truth instead of two strings that drift.
 the same or as an ask-worthy near-miss:
 
 1. **Exact `norm()` match** — none share a `norm` key. No key ends in
-   `s`, so the trailing-`s` drop in `norm()` never merges two of them.
+   `s` or `ies`, so `norm()`'s singularizing never changes one of them,
+   let alone merges two.
 2. **Acronym match** (initials of one key's tokens equal another key) —
    no initialism of a multi-token key equals another key in the table:
    `plan-item` → `pi`, `test-plan` → `tp`, `glossary-term` → `gt`,
@@ -55,9 +58,11 @@ table.
 ## Known, deliberate surprise
 
 Installing both `Plan Item` and `Test Plan` means a bare request like
-"add a plan" is genuinely ambiguous prose (not a `norm()` collision) —
-`okf-concept` step 2 will ask which one you meant, because "plan" alone
-gives it nothing to match. This is correct behaviour, not a bug in this
+"add a plan" hits both in `okf-concept` step 3's containment pass:
+`[plan]` is a contiguous sub-sequence of `[plan, item]` and of
+`[test, plan]`. The two catalog keys don't collide with each other; the
+request is just ambiguous. `okf-concept` asks one question listing both
+plus the new-type option. This is correct behaviour, not a bug in this
 catalog: name the type ("a plan item for the migration", "a test plan
 for the migration") to skip the question.
 
@@ -88,7 +93,7 @@ spine most likely to blur:
 
 ## Documented deviations from `okf-concept`'s defaults
 
-- **`stale_after` pre-wired.** `okf-concept` step 6 omits `stale_after`
+- **`stale_after` pre-wired.** `okf-concept` step 7 omits `stale_after`
   unless the user supplies a value. `Dependency` and `Risk` are the
   only two skeletons that carry it as a placeholder line — a pin with
   no revisit date and a risk with no review date are exactly the

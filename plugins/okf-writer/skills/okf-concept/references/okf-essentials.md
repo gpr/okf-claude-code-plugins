@@ -27,7 +27,7 @@ unknown types gracefully.
 | `status` | `draft \| stable \| deprecated`, default `stable` |
 | `generated` | `{ by, at }` — who/when last wrote the content |
 | `sources` | provenance list |
-| `stale_after` | absolute date; concept is stale on/after it |
+| `stale_after` | absolute instant; concept is stale on/after it |
 
 ## Never written by this skill
 
@@ -40,18 +40,20 @@ deterministic process, not from an agent.
 ## Actor and timestamp conventions
 
 - `generated.by` is `claude-code/<model-id>`, e.g.
-  `claude-code/claude-sonnet-5` — the model actually running, not a
+  `claude-code/claude-opus-5` — the model actually running, not a
   copied literal.
-- `generated.at` is RFC 3339, UTC, with a `Z` suffix
-  (`2026-08-09T14:30:00Z`).
-- Date-only fields (`stale_after`, `usage_window`) are `YYYY-MM-DD`.
+- Every time-valued field (`generated.at`, `stale_after`,
+  `usage_window.from`/`to`) is RFC 3339, UTC, with a `Z` suffix
+  (`2026-08-09T14:30:00Z`). OKF defines `stale_after` as an instant, not
+  a date.
 
 ## `index.md`
 
 Reserved at every level of the hierarchy; never a concept document.
 Carries no frontmatter, except an optional `okf_version` key in the
-bundle-root `index.md` only. Body is one or more sections, each an H1
-heading grouping bullet links:
+bundle-root `index.md` only. Body is one or more sections, each a
+heading grouping bullet links (the spec's example uses H1 headings, and
+so does this skill when it creates an index):
 
 ```markdown
 # Section heading
@@ -69,9 +71,11 @@ Descriptions SHOULD come from the linked concept's frontmatter
 
 ## `log.md`
 
-Reserved at every level; never a concept document. Fixed H1
-`# Directory Update Log`, then date-grouped entries, newest first, with
-`## YYYY-MM-DD` headings (ISO 8601 — MUST). Entries are prose bulleted
+Reserved at every level; never a concept document. A flat list of
+date-grouped entries, newest first, under `## YYYY-MM-DD` headings (ISO
+8601 — the one MUST). The spec's example H1 is `# Directory Update Log`;
+this skill uses it when creating a log, but an existing log's H1 is
+left as it is. Entries are prose bulleted
 with a bold lead word by convention (`**Creation**`, `**Update**`,
 `**Deprecation**`):
 

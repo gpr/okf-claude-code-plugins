@@ -10,11 +10,17 @@ why we chose DuckDB" or "add a playbook for rotating the on-call pager", it
 
 1. finds the bundle root and identifies the concept `type` from the request,
    reusing an existing type's spelling when one matches;
-2. applies `templates/<type>.md` if that type already has one;
-3. writes the concept;
-4. if the type is new, derives `templates/<type>.md` from the concept it
-   just wrote, and registers it in `templates/index.md`;
-5. updates the concept's directory `index.md` (and its parent, if the
+2. picks a skeleton: the type's `templates/<type>.md` if it has one; else
+   one derived from the bundle's existing concepts of that type; else,
+   for a type new to the bundle, the matching `okf-type-library` catalog
+   template; else an invented one;
+3. confirms once, before writing anything;
+4. writes the concept (installing the catalog template first, if that
+   was the choice);
+5. if it had no template to start from, derives `templates/<type>.md`
+   from the concept it just wrote, and registers it in
+   `templates/index.md`;
+6. updates the concept's directory `index.md` (and its parent, if the
    directory is new) and appends an entry to the bundle-root `log.md`.
 
 See `skills/okf-concept/SKILL.md`.

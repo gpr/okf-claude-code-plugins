@@ -41,4 +41,4 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 # Traceability
 
 - Concerns: [<component or environment title>](/components/<slug>.md)
-- Produced: [<ADR, Playbook, or Risk title>](/decisions/<slug>.md)
+- Produced: [<ADR, Playbook, or Risk title>](/adrs/<slug>.md)

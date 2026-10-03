@@ -18,7 +18,7 @@ description: <one sentence saying what this project uses it for>
 resource: <registry, package, or repository URL>
 tags: [<tag>, <tag>]
 status: draft
-stale_after: <YYYY-MM-DD — when the pin should be revisited>
+stale_after: <RFC 3339 UTC, Z suffix — when the pin should be revisited>
 generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 ```
 
@@ -42,5 +42,5 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 # Traceability
 
 - Chosen for: [<technology title>](/technologies/<slug>.md)
-- Decided in: [<ADR title>](/decisions/<slug>.md)
+- Decided in: [<ADR title>](/adrs/<slug>.md)
 - Installed in: [<environment title>](/environments/<slug>.md)

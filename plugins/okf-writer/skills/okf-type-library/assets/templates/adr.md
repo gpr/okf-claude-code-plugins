@@ -43,4 +43,4 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 - Decides for: [<specification title>](/specifications/<slug>.md)
 - Selects: [<technology title>](/technologies/<slug>.md)
-- Supersedes: [<earlier ADR title>](/decisions/<slug>.md)
+- Supersedes: [<earlier ADR title>](/adrs/<slug>.md)

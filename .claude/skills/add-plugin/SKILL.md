@@ -1,6 +1,6 @@
 ---
 name: add-plugin
-description: This skill should be used when the user asks to "add a plugin", "create a new plugin", "scaffold a plugin", "add okf-writer", "add okf-driven-dev", or wants to add an entry to this repository's marketplace. Scaffolds a new plugin under plugins/<name>/ and syncs its name and description across plugin.json, marketplace.json, and README.md — the three sites that must agree per the root CLAUDE.md.
+description: This skill should be used when the user asks to "add a plugin", "create a new plugin", "scaffold a plugin", "add okf-driven-dev", or wants to add an entry to this repository's marketplace. Scaffolds a new plugin under plugins/<name>/ and syncs its name and description across plugin.json, marketplace.json, and the README.md plugins table — the three sites that must agree per the root CLAUDE.md.
 disable-model-invocation: true
 ---
 
@@ -38,9 +38,9 @@ Pick the one that matches what the plugin does, or ask the user:
     README.md
     hooks/hooks.json
     scripts/            # stdlib Python invoked by hooks
-    agents/              # optional
-    bin/                 # optional CLI entry points
-    tests/                # optional unittest
+    bin/                # optional CLI entry points
+    tests/              # optional unittest
+    examples/           # optional README fixtures
   ```
 - **Skill-only** (`okf-core` is the model): ships packaged knowledge/workflow
   only, no runtime code. Layout:
@@ -50,10 +50,14 @@ Pick the one that matches what the plugin does, or ask the user:
     README.md
     skills/<skill-name>/SKILL.md
     skills/<skill-name>/references/*.md
+    skills/<skill-name>/assets/     # optional, files the skill copies out
+    skills/<skill-name>/evals/      # optional, evals.json
+    agents/<agent-name>.md          # optional (okf-core ships okf-search)
   ```
 
-For a genuinely new shape, use `plugin-dev:create-plugin` for the scaffolding
-mechanics, then continue at step 2 below for the marketplace-specific wiring
+For a genuinely new shape, use `plugin-dev:create-plugin` for the
+scaffolding mechanics if that plugin is installed (otherwise scaffold by
+hand), then continue at step 2 below for the marketplace-specific wiring
 it does not know about.
 
 ### 2. Write `plugins/<name>/.claude-plugin/plugin.json`
@@ -91,12 +95,14 @@ Append to `plugins[]` in `.claude-plugin/marketplace.json`, at the repo root:
 `name` and `description` must be byte-identical to `plugin.json`. `source`
 must be exactly `./plugins/<name>`.
 
-### 4. Update the README bullet list
+### 4. Update the README plugins table
 
-Add one bullet to the plugin list in root `README.md`, matching the existing
-style (`` `name`: description``). If `<name>` is `okf-writer` or
-`okf-driven-dev`, a bullet already exists there as a forward reference —
-replace it rather than duplicating.
+Add one row to the `## Plugins` table in root `README.md`:
+`` | [`<name>`](plugins/<name>) | <description> | <what it ships> | ``. The
+"What it does" cell is the description, byte-identical to the other two
+sites; the "Ships" cell lists skills, agents, hooks, and `bin/` entries.
+If `<name>` is `okf-driven-dev`, also remove its entry from the
+`## Roadmap` section, which names it as not yet implemented.
 
 ### 5. Add a plugin CLAUDE.md once there is something to describe
 
@@ -140,7 +146,8 @@ python3 -m unittest discover -s plugins/<name>/tests   # if tests/ exists
 
 This skill only wires a plugin into the marketplace's structural conventions.
 It does not design the plugin's actual functionality (hooks logic, skill
-content) — that is the user's call, made explicitly per root `CLAUDE.md`'s
-"Ask first on big decisions" (architecture, interfaces) and "No speculative
-features" (do not scaffold `okf-writer` or `okf-driven-dev`'s internals
-unprompted, only the shell once asked).
+content) — that is the user's call: ask before deciding architecture or
+interfaces, and don't scaffold a plugin's internals unprompted, only the
+shell once asked. Shared invariants every plugin must keep (stdlib-only
+Python, `${CLAUDE_PLUGIN_ROOT}` paths, hooks that never touch the network
+or raise) are in root `CLAUDE.md` §"Shared conventions".

@@ -42,5 +42,5 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 - Satisfies: [<requirement title>](/requirements/<slug>.md)
 - Specified by: [<specification title>](/specifications/<slug>.md)
-- Decided in: [<ADR title>](/decisions/<slug>.md)
+- Decided in: [<ADR title>](/adrs/<slug>.md)
 - Verified by: [<test plan title>](/test-plans/<slug>.md)

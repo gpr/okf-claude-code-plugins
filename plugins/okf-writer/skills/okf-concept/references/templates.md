@@ -1,7 +1,7 @@
 # Templates
 
 The `type: Template` concept contract, slug/norm rules, and the
-new-type derivation this skill performs at authoring-procedure.md step 7.
+new-type derivation this skill performs at authoring-procedure.md step 8.
 
 ## The `type: Template` contract
 
@@ -17,10 +17,10 @@ inside the template's body. **It is never a second `---` block.**
 This matters because every `.md` file that isn't `index.md` or `log.md`
 is a concept. If a template opened with the target type's frontmatter
 (`type: ADR`, ...), any OKF consumer — including this skill's own
-type-vocabulary scan at authoring-procedure.md step 1 — would read the
+type-vocabulary scan at authoring-procedure.md step 2 — would read the
 template file itself as a real concept of that type. That would poison
 the bundle's type vocabulary (a phantom ADR that is really a template)
-and corrupt any index or count built from it. Step 1 of the procedure
+and corrupt any index or count built from it. Step 2 of the procedure
 guards against a bundle that already has this problem by excluding
 `<root>/templates/` when collecting existing concept types — but a
 template this skill writes must not create the problem in the first
@@ -36,13 +36,15 @@ derived from the filename (see reverse lookup, below).
 
 ```
 slug(s):  lowercase → replace each run of non-alphanumeric chars with "-" → trim "-"
-norm(s):  slug(s), then drop a trailing "s" from the last token unless it ends in "ss"
+norm(s):  slug(s), then singularize the last token:
+            "ies" → "y"; else drop a trailing "s" unless it ends in "ss"
 ```
 
 | Input | `slug` (filename) | `norm` (matching key) |
 |---|---|---|
 | `ADR` | `adr` | `adr` |
 | `ADRs` | `adrs` | `adr` |
+| `Dependencies` | `dependencies` | `dependency` |
 | `BigQuery Table` | `bigquery-table` | `bigquery-table` |
 | `API Endpoint` | `api-endpoint` | `api-endpoint` |
 | `Attested Computation` | `attested-computation` | `attested-computation` |
@@ -67,14 +69,16 @@ yield `ADR`). Two authoritative sources, in order:
 2. The `type:` value inside the template's skeleton fence — checked when
    the template is actually loaded, and it wins if the two disagree.
 
-This is why authoring-procedure.md step 7 must write its
+This is why authoring-procedure.md step 8 must write its
 `templates/index.md` entry with the canonical type string as link text —
 that entry is what makes future lookups exact-match without asking.
 
 ## Deriving a template from a concept
 
-Runs only for a new type or a type that has no template yet, and only
-*after* the concept is written — the template is derived from the file
+Runs only when authoring-procedure.md step 4 marked the run
+new-template — a type new to the bundle and not in the `okf-type-library`
+catalog, or a type in use with no template — and only *after* the
+concept is written — the template is derived from the file
 that was actually produced, not invented ahead of it.
 
 | Part of the written concept | In the derived template |
@@ -94,54 +98,53 @@ that was actually produced, not invented ahead of it.
 
 ## Worked example
 
-Concept written first (`decisions/choose-duckdb.md`, full text in
+Concept written first (`metrics/weekly-active-users.md`, full text in
 `authoring-procedure.md`'s new-type example) produces this derived
 template:
 
 `````markdown
 ---
 type: Template
-title: ADR template
-description: Skeleton for ADR concepts.
+title: Metric template
+description: Skeleton for Metric concepts.
 status: draft
-generated: { by: claude-code/claude-sonnet-5, at: 2026-08-09T10:16:00Z }
+generated: { by: claude-code/claude-opus-5, at: 2026-08-09T10:16:00Z }
 ---
 
-Skeleton for `type: ADR` concepts. Copy the fence below into a new
+Skeleton for `type: Metric` concepts. Copy the fence below into a new
 file's frontmatter, then fill the body headings. Resolve every
 `<placeholder>`.
 
 ```yaml
-type: ADR
-title: <the decision, stated as an action>
-description: <one sentence recording what was decided and why>
+type: Metric
+title: <the metric name>
+description: <one sentence defining what is counted, over what window>
 tags: [<tag>, <tag>]
 status: draft
 generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 ```
 
-# Context
+# Definition
 
-<what forced the decision>
+<what is counted, and over what window>
 
-# Decision
+# Computation notes
 
-<the decision, one sentence, present tense>
+<how the value is derived from source data>
 
-# Consequences
+# Caveats
 
-- <what gets better>
-- <what gets worse>
+- <a limitation or comparability break>
 `````
 
 Note what generalized: `title`/`description`/`tags` values became
 placeholders, prose became one-line hints, the `generated` timestamp
-became a format hint. Note what stayed: `type: ADR`, `status: draft`,
+became a format hint. Note what stayed: `type: Metric`, `status: draft`,
 every heading, the heading order. Note what is absent: `sources`,
 `verified`, any concrete link.
 
 Then `templates/index.md` gains:
 
 ```markdown
-* [ADR](adr.md) - Skeleton for ADR concepts.
+* [Metric](metric.md) - Skeleton for Metric concepts.
 ```
