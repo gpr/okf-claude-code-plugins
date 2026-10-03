@@ -21,6 +21,11 @@
       "name": "okf-writer",
       "source": "./plugins/okf-writer",
       "description": "Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync."
+    },
+    {
+      "name": "okf-memory",
+      "source": "./plugins/okf-memory",
+      "description": "Serves an OKF memory (structural outline with line numbers) instead of reading oversized files in full."
     }
   ]
 }

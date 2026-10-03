@@ -57,6 +57,7 @@ that doesn't use OKF pays zero tokens.
 /plugin install okf-core@okf-cc-plugins
 /plugin install okf-reader@okf-cc-plugins
 /plugin install okf-writer@okf-cc-plugins
+/plugin install okf-memory@okf-cc-plugins
 ```
 
 Plugins are independent — install only what you need. `okf-core` is
@@ -67,7 +68,8 @@ mechanism.
 ### Requirements
 
 - Claude Code
-- `python3` on `PATH` — `okf-reader` only, for its `SessionStart` hook
+- `python3` on `PATH` — `okf-reader` (`SessionStart` hook) and `okf-memory`
+  (`Read` hooks) only
 
 Hook and CLI scripts are Python 3 stdlib only: no install step, no
 virtualenv, no dependency manifest.
@@ -79,6 +81,7 @@ virtualenv, no dependency manifest.
 | [`okf-core`](plugins/okf-core) | Shared Open Knowledge Format (OKF) knowledge for OKF plugins. | skill `okf-spec`, agent `okf-search` |
 | [`okf-reader`](plugins/okf-reader) | Loads OKF knowledge bundles into Claude Code sessions, lazily and by declared authority. | `SessionStart` hook, `bin/okf-reader-preview` |
 | [`okf-writer`](plugins/okf-writer) | Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync. | skills `okf-concept`, `okf-type-library` |
+| [`okf-memory`](plugins/okf-memory) | Serves an OKF memory (structural outline with line numbers) instead of reading oversized files in full. | `PreToolUse`/`PostToolUse` hooks, `bin/okf-memory-preview` |
 
 ## How okf-reader finds bundles
 
@@ -143,6 +146,9 @@ python3 -m unittest discover -s plugins/okf-reader/tests
 
 # preview what the okf-reader hook would inject for a project
 python3 plugins/okf-reader/bin/okf-reader-preview .
+
+# run okf-memory's test suite
+python3 -m unittest discover -s plugins/okf-memory/tests
 
 # sanity-check both manifests still parse
 jq . .claude-plugin/marketplace.json plugins/*/.claude-plugin/plugin.json

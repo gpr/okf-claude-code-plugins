@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Preview what the okf-memory Read hook would do for a file, without Claude Code.
+
+    bin/okf-memory-preview FILE [--project DIR] [--max-bytes N] [--memory-dir DIR] [--raw]
+
+Side effect: like the real hook, this creates or refreshes the file's memory.
+Exits 1 when the hook would let the Read through (nothing intercepted).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+HOOK = Path(__file__).resolve().parent / "../scripts" / "okf_memory.py"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("file", help="file Claude would Read")
+    parser.add_argument("--project", default=".", help="project root (default: cwd)")
+    parser.add_argument("--max-bytes", help="CLAUDE_PLUGIN_OPTION_MAX_BYTES")
+    parser.add_argument("--memory-dir", help="CLAUDE_PLUGIN_OPTION_MEMORY_DIR")
+    parser.add_argument("--raw", action="store_true", help="print the JSON the hook emits")
+    args = parser.parse_args()
+
+    project = Path(args.project).expanduser().resolve()
+    target = Path(args.file).expanduser().resolve()
+    if not target.is_file():
+        print(f"no such file: {target}", file=sys.stderr)
+        return 2
+
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(project))
+    for flag, key in ((args.max_bytes, "MAX_BYTES"), (args.memory_dir, "MEMORY_DIR")):
+        if flag is not None:
+            env[f"CLAUDE_PLUGIN_OPTION_{key}"] = str(flag)
+
+    proc = subprocess.run(
+        [sys.executable, str(HOOK)],
+        input=json.dumps({
+            "cwd": str(project),
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Read",
+            "tool_input": {"file_path": str(target)},
+        }),
+        capture_output=True, text=True, env=env,
+    )
+    if proc.stderr:
+        print("\n".join(f"  warning: {line}" for line in proc.stderr.strip().splitlines()),
+              file=sys.stderr)
+    if not proc.stdout.strip():
+        print(f"Read of {target} would go through unchanged.", file=sys.stderr)
+        return 1
+    if args.raw:
+        print(proc.stdout.rstrip())
+        return 0
+
+    reason = json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+    served, source = len(reason), target.stat().st_size
+    print(f"\n{'=' * 72}\nserved {served:,} chars (~{served // 4:,} tokens) "
+          f"instead of {source:,} bytes (~{source // 4:,} tokens)\n{'=' * 72}\n")
+    print(reason)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -16,7 +16,7 @@ plugins/<name>/
 
 Plugin internals vary by kind — this marketplace has both:
 
-- **Hook-based** (`okf-reader`): `hooks/hooks.json`, `scripts/` (stdlib
+- **Hook-based** (`okf-reader`, `okf-memory`): `hooks/hooks.json`, `scripts/` (stdlib
   Python), `bin/` (CLI entry points), `tests/` (unittest), `examples/`
   (fixtures for the README).
 - **Skill-only** (`okf-core`, `okf-writer`): `skills/<skill-name>/SKILL.md` +
@@ -62,6 +62,7 @@ Run from the repo root:
 ```
 python3 -m unittest discover -s plugins/okf-reader/tests   # tests
 python3 plugins/okf-reader/bin/okf-reader-preview .         # what the hook would inject
+python3 -m unittest discover -s plugins/okf-memory/tests   # okf-memory tests
 ```
 
 ## Working in this repo

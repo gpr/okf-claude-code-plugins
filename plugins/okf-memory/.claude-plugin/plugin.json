@@ -1,0 +1,25 @@
+{
+  "name": "okf-memory",
+  "description": "Serves an OKF memory (structural outline with line numbers) instead of reading oversized files in full.",
+  "version": "0.1.0",
+  "displayName": "OKF Memory",
+  "author": {
+    "name": "Gregory Romé",
+    "email": "gregory.rome@gmail.com",
+    "url": "https://github.com/gpr"
+  },
+  "userConfig": {
+    "max_bytes": {
+      "type": "string",
+      "title": "Full-read size limit (bytes)",
+      "description": "A full Read of a file larger than this is answered with the file's memory instead. 0 disables interception.",
+      "default": "20000"
+    },
+    "memory_dir": {
+      "type": "string",
+      "title": "Memory directory",
+      "description": "Where memories are kept, relative to the project root. A source at path/to/file.ext has its memory at <memory_dir>/path/to/file.ext.md.",
+      "default": ".memory"
+    }
+  }
+}
