@@ -4,3 +4,5 @@ __pycache__/
 .claude/worktrees/
 .claude/plans/
 .claude/settings.local.json
+# okf-memory (if enabled while working here)
+.memory/
