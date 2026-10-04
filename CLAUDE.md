@@ -79,6 +79,20 @@ ignore it. Don't strip its frontmatter to silence the injection: the
 `tests/test_okf_context.py` (via synthetic tmp-dir fixtures, not this file
 directly), so doing so breaks the worked example without touching any test.
 
+This repo enables its own `okf-memory` plugin (`.claude/settings.json`,
+marketplace registered from `.` so the hook runs the working-tree code). A
+full `Read` of a file over `max_bytes` returns its memory (outline with source
+line numbers), not the content; use a ranged `Read` (`offset`/`limit`) or
+`Grep` for real lines. Memories land in `.memory/`, which is gitignored.
+Changes to `plugins/okf-memory/` take effect at the next session or
+`/reload-plugins`.
+
+`max_bytes` can't be set here: Claude Code reads `pluginConfigs` only from
+user or managed settings. At the 20 KB default almost no file in this repo
+qualifies, so to exercise the plugin while working on it, lower it in
+`~/.claude/settings.json`:
+`"pluginConfigs": {"okf-memory@okf-cc-plugins": {"max_bytes": "8000"}}`.
+
 ## Adding a plugin
 
 No CLAUDE.md exists yet for `okf-driven-dev` — it doesn't exist as a plugin

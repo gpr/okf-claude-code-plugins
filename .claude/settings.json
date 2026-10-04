@@ -1,4 +1,15 @@
 {
+  "extraKnownMarketplaces": {
+    "okf-cc-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "."
+      }
+    }
+  },
+  "enabledPlugins": {
+    "okf-memory@okf-cc-plugins": true
+  },
   "hooks": {
     "PostToolUse": [
       {
