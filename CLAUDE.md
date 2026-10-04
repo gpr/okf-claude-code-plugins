@@ -16,8 +16,8 @@ plugins/<name>/
 
 Plugin internals vary by kind — this marketplace has both:
 
-- **Hook-based** (`okf-reader`, `okf-memory`): `hooks/hooks.json`, `scripts/` (stdlib
-  Python), `bin/` (CLI entry points), `tests/` (unittest), `examples/`
+- **Hook-based** (`okf-reader`, `okf-memory`): `hooks/hooks.json`, `scripts/`
+  (Python), `bin/` (CLI entry points), `tests/` (unittest), `examples/`
   (fixtures for the README).
 - **Skill-only** (`okf-core`, `okf-writer`): `skills/<skill-name>/SKILL.md` +
   `references/*.md` (+ `assets/` and `evals/` for `okf-writer`'s
@@ -44,9 +44,12 @@ jq . .claude-plugin/marketplace.json plugins/*/.claude-plugin/plugin.json
 
 ## Shared conventions
 
-- Hook and CLI scripts are Python 3 **stdlib only**. They run under whatever
-  `python3` the user already has — no install step, no virtualenv, no
-  dependency manifest. Do not add one.
+- Hook and CLI scripts are Python 3 and run under whatever `python3` the user
+  already has. They must **work on the stdlib alone**: a third-party library
+  (e.g. tree-sitter in `okf-memory`) is an optional, lazily imported
+  enhancement with a stdlib fallback, installed only by an explicit user-run
+  setup command (`plugins/okf-memory/bin/okf-memory-setup`), never by a hook.
+  No virtualenv, no dependency manifest the plugin needs before it works.
 - Reference in-plugin files from `hooks.json` via `${CLAUDE_PLUGIN_ROOT}`,
   never a relative path (see `plugins/okf-reader/hooks/hooks.json`).
 - Hook invariants for every plugin here: never touch the network; never raise

@@ -12,6 +12,7 @@ import os
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
@@ -56,19 +57,28 @@ class TmpProjectTestCase(unittest.TestCase):
         return out.getvalue(), err.getvalue()
 
     def pre(self, path: Path, **tool_input) -> tuple[str, str]:
+        """A Read of `path` as PostToolUse sees it: the tool already ran."""
+        content = path.read_text(errors="replace")
+        n = content.count("\n") + 1
         return self.run_hook({
-            "hook_event_name": "PreToolUse", "tool_name": "Read", "cwd": str(self.root),
+            "hook_event_name": "PostToolUse", "tool_name": "Read", "cwd": str(self.root),
             "tool_input": {"file_path": str(path), **tool_input},
+            "tool_response": {"type": "text", "file": {
+                "filePath": str(path), "content": content,
+                "numLines": n, "startLine": 1, "totalLines": n}},
         })
+
+    def shown(self, out: str) -> str:
+        """What Claude would see, from the hook's stdout."""
+        hso = json.loads(out)["hookSpecificOutput"]
+        self.assertEqual(hso["hookEventName"], "PostToolUse")
+        return hso["updatedToolOutput"]["file"]["content"]
 
     def post(self, tool: str, path: Path) -> tuple[str, str]:
         return self.run_hook({
             "hook_event_name": "PostToolUse", "tool_name": tool, "cwd": str(self.root),
             "tool_input": {"file_path": str(path)},
         })
-
-
-import unittest.mock  # noqa: E402
 
 
 class PreReadTests(TmpProjectTestCase):
@@ -78,12 +88,14 @@ class PreReadTests(TmpProjectTestCase):
         self.assertEqual((out, err), ("", ""))
         self.assertFalse((self.root / ".memory").exists())
 
-    def test_big_file_is_denied_with_memory_and_memory_is_written(self):
+    def test_big_file_output_is_replaced_by_memory_and_memory_is_written(self):
         src = write(self.root, "pkg/mod.py", big_python())
         out, _ = self.pre(src)
-        hso = json.loads(out)["hookSpecificOutput"]
-        self.assertEqual(hso["permissionDecision"], "deny")
-        reason = hso["permissionDecisionReason"]
+        reason = self.shown(out)
+        updated = json.loads(out)["hookSpecificOutput"]["updatedToolOutput"]
+        self.assertEqual(updated["type"], "text")
+        self.assertEqual(updated["file"]["filePath"], str(src))
+        self.assertEqual(updated["file"]["numLines"], reason.count("\n") + 1)
         self.assertIn("def func_0(a: int, b: str='x') -> int", reason)
         self.assertIn("class Thing(Base)", reason)
         mem = self.root / ".memory/pkg/mod.py.md"
@@ -141,7 +153,7 @@ class PreReadTests(TmpProjectTestCase):
         mem.write_text(mem.read_text().replace(
             okf_memory.NOTES_PLACEHOLDER, "# Notes\n\nfunc_3 is the hot path.\n"))
         src.write_text(big_python() + "\ndef added_later():\n    pass\n")
-        reason = json.loads(self.pre(src)[0])["hookSpecificOutput"]["permissionDecisionReason"]
+        reason = self.shown(self.pre(src)[0])
         self.assertIn("def added_later()", reason)
         self.assertIn("func_3 is the hot path.", reason)
         self.assertIn("func_3 is the hot path.", mem.read_text())
@@ -153,8 +165,34 @@ class PreReadTests(TmpProjectTestCase):
         mem.write_text(mem.read_text() + "\nhand edit\n")
         self.assertIn("hand edit", self.pre(src)[0])
 
+    def test_unknown_output_shape_is_left_alone(self):
+        src = write(self.root, "mod.py", big_python())
+        for response in ({"type": "file_unchanged", "file": {"filePath": str(src)}},
+                         "1\tplain string", None):
+            out, _ = self.run_hook({
+                "hook_event_name": "PostToolUse", "tool_name": "Read", "cwd": str(self.root),
+                "tool_input": {"file_path": str(src)}, "tool_response": response})
+            self.assertEqual(out, "")
+        self.assertTrue((self.root / ".memory/mod.py.md").is_file())
+
+    def test_failed_full_read_gets_memory_as_context(self):
+        src = write(self.root, "mod.py", big_python())
+        out, _ = self.run_hook({
+            "hook_event_name": "PostToolUseFailure", "tool_name": "Read", "cwd": str(self.root),
+            "tool_input": {"file_path": str(src)}, "error": "File content exceeds maximum"})
+        hso = json.loads(out)["hookSpecificOutput"]
+        self.assertEqual(hso["hookEventName"], "PostToolUseFailure")
+        self.assertIn("def func_0", hso["additionalContext"])
+
+    def test_failed_ranged_read_gets_nothing(self):
+        src = write(self.root, "mod.py", big_python())
+        out, _ = self.run_hook({
+            "hook_event_name": "PostToolUseFailure", "tool_name": "Read", "cwd": str(self.root),
+            "tool_input": {"file_path": str(src), "offset": 5}, "error": "x"})
+        self.assertEqual(out, "")
+
     def test_garbage_input_never_raises(self):
-        for payload in ("not json", json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Read",
+        for payload in ("not json", json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Read",
                                                  "tool_input": {"file_path": 42}})):
             out, err = io.StringIO(), io.StringIO()
             with redirect_stdout(out), redirect_stderr(err), \
@@ -171,14 +209,21 @@ class PostToolTests(TmpProjectTestCase):
         self.assertEqual(self.post("Edit", src), ("", ""))
         self.assertIn("def edited()", (self.root / ".memory/mod.py.md").read_text())
 
-    def test_post_never_creates_a_memory(self):
+    def test_edit_write_and_ranged_read_never_create_a_memory(self):
         src = write(self.root, "mod.py", big_python())
         self.post("Write", src)
-        self.post("Read", src)
+        self.post("Edit", src)
+        self.pre(src, offset=1, limit=20)
         self.assertFalse((self.root / ".memory").exists())
 
 
 class OutlineTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # Regex/stdlib strategies are tested without tree-sitter, whatever is installed.
+        patcher = unittest.mock.patch.object(outline, "_language_pack", return_value=None)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_python_tree_has_spans_signatures_and_nesting(self):
         _, entries = outline.outline(Path("m.py"), big_python(2))
         text = "\n".join(entries)
@@ -212,6 +257,60 @@ class OutlineTests(unittest.TestCase):
         method, entries = outline.outline(Path("x.js"), "var a=1;" * 2000)
         self.assertTrue(method.startswith("none"))
         self.assertEqual(entries, [])
+
+
+
+class FakePack:
+    """Stands in for tree_sitter_language_pack; records whether it was asked to parse."""
+
+    def __init__(self, cached):
+        self.cached, self.processed = cached, []
+
+    def detect_language_from_path(self, path):
+        return "typescript" if path.endswith(".ts") else None
+
+    def downloaded_languages(self):
+        return self.cached
+
+    def ProcessConfig(self, **kw):
+        return kw
+
+    def process(self, text, config):
+        self.processed.append(config["language"])
+        span = lambda a, b: type("S", (), {"start_line": a, "end_line": b})()  # noqa: E731
+        item = lambda kind, name, sig, a, b, children=(): type("I", (), dict(  # noqa: E731
+            kind=type("K", (), {"type": kind})(), name=name, signature=sig, span=span(a, b),
+            doc_comment=None, children=list(children)))()
+        return type("R", (), {"structure": [
+            item("Class", "Bar", "class Bar extends Baz", 2, 9,
+                 [item("Method", "baz", "private baz(x: number): void", 4, 6)])]})()
+
+
+class TreeSitterTests(unittest.TestCase):
+    TS = "x;\n" * 10
+
+    def test_cached_grammar_is_used_with_one_based_lines_and_nesting(self):
+        pack = FakePack(["typescript"])
+        with unittest.mock.patch.object(outline, "_language_pack", return_value=pack):
+            method, entries = outline.outline(Path("x.ts"), self.TS)
+        self.assertEqual(method, "syntax tree (tree-sitter, typescript)")
+        self.assertEqual(entries, ["L3-10: class Bar extends Baz",
+                                   "L5-7:   private baz(x: number): void"])
+
+    def test_uncached_grammar_is_never_requested(self):
+        pack = FakePack([])  # process() would download it: must not be called
+        with unittest.mock.patch.object(outline, "_language_pack", return_value=pack):
+            method, _ = outline.outline(Path("x.ts"), self.TS)
+        self.assertEqual(pack.processed, [])
+        self.assertIn("declaration scan", method)
+
+    @unittest.skipUnless(outline._language_pack() and "go" in outline._language_pack().downloaded_languages(),
+                         "tree-sitter-language-pack with a cached go grammar not installed")
+    def test_real_tree_sitter_go(self):
+        go = "package m\n\nfunc F(a int) error {\n\treturn nil\n}\n"
+        method, entries = outline.outline(Path("m.go"), go)
+        self.assertEqual(method, "syntax tree (tree-sitter, go)")
+        self.assertEqual(entries, ["L3-5: func F(a int) error"])
 
 
 if __name__ == "__main__":

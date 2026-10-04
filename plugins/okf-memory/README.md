@@ -1,7 +1,7 @@
 # okf-memory
 
-Stops Claude Code from reading big files in full. When Claude asks for a
-whole file over a size limit, it gets the file's **memory** instead: a short
+Stops Claude Code from paying for big files in full. When Claude reads a
+whole file over a size limit, what it sees is the file's **memory** instead: a short
 [OKF](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md)
 concept with a structural outline of the file, every entry carrying its line
 numbers. Claude then reads only the ranges it needs.
@@ -11,18 +11,19 @@ tokens instead of ~3,100.
 
 ## How it works
 
-Two hooks, one script (`scripts/okf_memory.py`):
+One script (`scripts/okf_memory.py`), two events:
 
 | Event | Matcher | Does |
 |---|---|---|
-| `PreToolUse` | `Read` | Full read of a file over `max_bytes` → creates or refreshes `.memory/<path>.md` and denies the read, with the memory as the reason Claude sees. |
-| `PostToolUse` | `Read\|Edit\|Write\|MultiEdit` | Refreshes an **existing** memory whose source changed. Never creates one. |
+| `PostToolUse` | `Read` | Full read of a file over `max_bytes` → creates or refreshes `.memory/<path>.md` and replaces the result Claude sees with it (`updatedToolOutput`). The Read itself ran, so Edit's read-before-edit rule is satisfied. |
+| `PostToolUseFailure` | `Read` | A full read that failed — typically a file over Read's own size cap — gets the memory attached as `additionalContext` next to the error. |
+| `PostToolUse` | `Edit\|Write\|MultiEdit`, ranged `Read` | Refreshes an **existing** memory whose source changed. Never creates one. |
 
 A source at `path/to/file.ext` has its memory at
 `.memory/path/to/file.ext.md`. The extension stays in the name so `app.py`
 and `app.js` never share a memory.
 
-### What is never intercepted
+### What is never replaced
 
 - **Ranged reads** (`offset` or `limit` set). This is the escape hatch: when
   Claude really needs the whole file, it reads it with an explicit range.
@@ -31,12 +32,12 @@ and `app.js` never share a memory.
 - Files outside the project root, inside `.git`, or inside the memory dir.
 - Files no outline can be built for (unknown language, minified code), and
   files whose memory would be more than half the size of the source — there
-  the deny would only cost a round trip.
+  the real content is the better answer.
 
 ### Staleness
 
-Each memory records `source_sha256`. The `PreToolUse` hook checks it before
-serving, so an outline with wrong line numbers is never served even if the
+Each memory records `source_sha256`. The hook checks it before serving,
+so an outline with wrong line numbers is never served even if the
 file changed outside Claude (git pull, another editor). The `PostToolUse`
 hook refreshes memories right after Claude edits a file, so the next read is
 already current.
@@ -80,20 +81,39 @@ applied in `finalize()`"), and they survive regeneration.
 
 | Language | Method |
 |---|---|
-| Python | Real syntax tree (`ast`): imports, constants, classes, methods, functions with signatures, line spans and first docstring line. |
+| Python | Real syntax tree (stdlib `ast`): imports, constants, classes, methods, functions with signatures, line spans and first docstring line. |
 | Markdown | Heading tree (ignores headings inside code fences). |
 | JSON | Key tree with types and sizes, 3 levels deep. No line numbers. |
-| JS/TS, Go, Rust, Java, Kotlin, Scala, Swift, C#, C/C++, Ruby, PHP, Shell, SQL, CSS, YAML, TOML, INI | Declaration scan: lines matching per-language regexes, start line only. **Not a parse tree** — expect occasional misses and false hits. |
+| JS/TS, Go, Rust, Java, Kotlin, Scala, Swift, C#, C/C++, Ruby, PHP, Bash, Lua, … | **With tree-sitter** (optional, see below): real syntax tree — classes, methods, functions, structs, traits, impls, with signatures, line spans and nesting. **Without it:** regex declaration scan, start line only, not a parse tree. |
+| CSS, SQL, YAML, TOML, INI | Regex declaration scan. |
 
-Hooks here are stdlib-only Python, and the stdlib has no parser for
-languages other than Python; a real tree for them would need tree-sitter,
-which this marketplace does not allow as a dependency.
+The outline's `Method:` line always says which strategy produced it.
+
+## tree-sitter (optional)
+
+```
+bin/okf-memory-setup            # install + download default grammars
+bin/okf-memory-setup --check    # what is installed, no network
+bin/okf-memory-setup --languages go,rust,typescript
+```
+
+The setup installs
+[`tree-sitter-language-pack`](https://pypi.org/project/tree-sitter-language-pack/)
+with `pip install --target` into `~/.local/share/okf-memory/pylib`
+(`$XDG_DATA_HOME` respected) — no virtualenv, nothing in your system
+site-packages — and downloads grammars into the package's cache. A copy
+already importable by `python3` works too.
+
+The hooks never download anything. `tree-sitter-language-pack` fetches a
+missing grammar over the network on first use, so the hook only uses
+languages already in its cache and falls back to the regex scan for the
+rest. Re-run the setup to add a language.
 
 ## Configuration
 
 | `userConfig` key | Default | Meaning |
 |---|---|---|
-| `max_bytes` | `20000` | Full reads above this many bytes are intercepted. `0` disables interception. |
+| `max_bytes` | `20000` | Full reads above this many bytes show the memory instead. `0` disables replacement. |
 | `memory_dir` | `.memory` | Where memories live, relative to the project root. |
 
 Decide whether `.memory/` is committed. Committing shares the `# Notes`
@@ -102,12 +122,18 @@ Ignoring it keeps git clean and memories regenerate on demand.
 
 ## Limits
 
-- Only the `Read` tool is intercepted. `cat` through Bash, or `Grep` with
-  wide context, still reads the full file.
-- The deny reason appears to Claude as a failed tool call; that is how a
-  `PreToolUse` hook substitutes content.
-- Claude Code's `Edit` requires the file to have been read first. A ranged
-  read satisfies that; a denied full read does not.
+- Only the `Read` tool is covered. `cat` through Bash, or `Grep` with wide
+  context, still returns the full file.
+- The file is still read from disk; only what Claude sees is replaced, so
+  the saving is in tokens, not I/O.
+- `updatedToolOutput` must match Read's output schema, which Claude Code
+  does not document. The hook rewrites only the `{"type": "text", "file":
+  {"content", ...}}` shape and leaves anything else alone; if Claude Code
+  rejects the replacement, Claude simply sees the real file. Check with a
+  live session after Claude Code upgrades.
+- Claude sees the memory with Read's line-number margin, which numbers the
+  memory's lines. The `L<n>` entries inside it are the source's line
+  numbers, and the header says so.
 
 ## Preview
 
@@ -115,5 +141,6 @@ Ignoring it keeps git clean and memories regenerate on demand.
 bin/okf-memory-preview path/to/big_file.py [--project DIR] [--max-bytes N]
 ```
 
-Prints what Claude would receive and the size saved. Like the real hook, it
+Simulates the `PostToolUse` hook after a full read: prints what Claude
+would see and the size saved. Like the real hook, it
 creates or refreshes the memory. Exits 1 when the read would go through.

@@ -37,7 +37,7 @@ Pick the one that matches what the plugin does, or ask the user:
     .claude-plugin/plugin.json
     README.md
     hooks/hooks.json
-    scripts/            # stdlib Python invoked by hooks
+    scripts/            # Python invoked by hooks (stdlib, optional deps only)
     bin/                # optional CLI entry points
     tests/              # optional unittest
     examples/           # optional README fixtures
@@ -148,6 +148,6 @@ This skill only wires a plugin into the marketplace's structural conventions.
 It does not design the plugin's actual functionality (hooks logic, skill
 content) — that is the user's call: ask before deciding architecture or
 interfaces, and don't scaffold a plugin's internals unprompted, only the
-shell once asked. Shared invariants every plugin must keep (stdlib-only
+shell once asked. Shared invariants every plugin must keep (stdlib-runnable
 Python, `${CLAUDE_PLUGIN_ROOT}` paths, hooks that never touch the network
 or raise) are in root `CLAUDE.md` §"Shared conventions".

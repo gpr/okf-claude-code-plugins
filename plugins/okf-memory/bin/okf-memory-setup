@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Install okf-memory's optional tree-sitter support. Run it yourself, once.
+
+    bin/okf-memory-setup [--languages LANG,...] [--check]
+
+Installs `tree-sitter-language-pack` into okf-memory's own directory
+(`$XDG_DATA_HOME/okf-memory/pylib`, default `~/.local/share/okf-memory/pylib`)
+with `python3 -m pip install --target`, so it neither needs a virtualenv nor
+touches the system site-packages, then downloads the grammars for LANGUAGES
+into the package's cache.
+
+This is the only part of okf-memory that uses the network. The hooks never
+download anything: they use tree-sitter only for grammars already cached here,
+and fall back to a regex declaration scan otherwise.
+
+--check reports what is installed, without network access.
+"""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "../scripts"))
+
+import outline  # noqa: E402
+
+PACKAGE = "tree-sitter-language-pack"
+DEFAULT_LANGUAGES = [
+    "javascript", "typescript", "tsx", "go", "rust", "java", "kotlin", "scala",
+    "swift", "csharp", "c", "cpp", "ruby", "php", "bash", "lua",
+]
+
+
+def check() -> int:
+    pack = outline._language_pack()
+    if pack is None:
+        print(f"{PACKAGE}: not installed (target: {outline.deps_dir()})")
+        print("okf-memory uses the regex declaration scan for non-Python code.")
+        return 1
+    print(f"{PACKAGE}: {Path(pack.__file__).parent}")
+    print(f"cached grammars: {', '.join(sorted(pack.downloaded_languages())) or '(none)'}")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--languages", default=",".join(DEFAULT_LANGUAGES),
+                        help="comma-separated grammar names (default: %(default)s)")
+    parser.add_argument("--check", action="store_true", help="report status, install nothing")
+    args = parser.parse_args()
+    if args.check:
+        return check()
+
+    target = outline.deps_dir()
+    target.mkdir(parents=True, exist_ok=True)
+    print(f"installing {PACKAGE} into {target}")
+    proc = subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
+                           "--target", str(target), PACKAGE])
+    if proc.returncode != 0:
+        print("pip install failed; okf-memory keeps working with its regex fallback.",
+              file=sys.stderr)
+        return proc.returncode
+
+    pack = outline._language_pack()
+    if pack is None:
+        print(f"{PACKAGE} installed but does not import under {sys.executable}.", file=sys.stderr)
+        return 1
+    languages = [name.strip() for name in args.languages.split(",") if name.strip()]
+    print(f"downloading grammars: {', '.join(languages)}")
+    pack.download(languages)
+    return check()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,11 +1,19 @@
-"""Structural outline of a source file, stdlib only.
+"""Structural outline of a source file.
 
-Python gets a real syntax tree (`ast`): classes, functions and methods with
-signatures, line ranges and first docstring line. Every other language gets a
-declaration scan: lines matching per-language declaration patterns, kept with
-their original indentation so nesting stays visible. That is not a parse tree,
-and it says so in its output - the stdlib has no parser for them, and this
-plugin may not add a dependency.
+Strategies, best first:
+
+  * Python: the stdlib `ast` - classes, functions and methods with
+    signatures, line ranges and first docstring line.
+  * Markdown / JSON: heading tree / key tree.
+  * Other code: tree-sitter, through the optional `tree-sitter-language-pack`
+    package (`structure` extraction: kind, name, signature, line span,
+    nesting). Used only when the package imports AND the language's grammar
+    is already in its local cache: `get_parser`/`process` download a missing
+    grammar over the network, and hooks never touch the network. Grammars are
+    fetched by `bin/okf-memory-setup`, an explicit user step.
+  * Fallback: a regex declaration scan - lines matching per-language
+    declaration patterns, kept with their indentation. Not a parse tree, and
+    the outline says so.
 
 Every entry carries a 1-based line number, because the point of the outline is
 to let the reader follow up with a ranged `Read` (offset/limit) instead of
@@ -16,7 +24,9 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import re
+import sys
 from pathlib import Path
 
 MAX_ENTRIES = 400
@@ -125,10 +135,66 @@ def outline(path: Path, text: str) -> tuple[str, list[str]]:
             return "key tree (no line numbers: JSON)", _json(json.loads(text))
         except ValueError:
             return "none (invalid JSON)", []
+    ts_lang, entries = _tree_sitter(path, text)
+    if entries:
+        return f"syntax tree (tree-sitter, {ts_lang})", entries
     if ext in LANGS:
         _, patterns, flags = LANGS[ext]
         return "declaration scan (regex, not a parse tree)", _scan(lines, patterns, flags)
     return "none (unknown language)", []
+
+
+def deps_dir() -> Path:
+    """Where `bin/okf-memory-setup` installs optional packages."""
+    base = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    return Path(base) / "okf-memory" / "pylib"
+
+
+def _language_pack():
+    """The tree-sitter language pack module, or None when it is not installed."""
+    extra = str(deps_dir())
+    if os.path.isdir(extra) and extra not in sys.path:
+        sys.path.insert(0, extra)
+    try:
+        import tree_sitter_language_pack as pack
+    except Exception:  # ImportError, or a broken native build
+        return None
+    return pack
+
+
+def _tree_sitter(path: Path, text: str) -> tuple[str | None, list[str]]:
+    """Outline via tree-sitter, or (None, []) when unavailable for this file."""
+    pack = _language_pack()
+    if pack is None:
+        return None, []
+    try:
+        lang = pack.detect_language_from_path(str(path))
+        # Gate on the local cache: process() would download a missing grammar.
+        if not lang or lang not in pack.downloaded_languages():
+            return None, []
+        result = pack.process(text, pack.ProcessConfig(language=lang, structure=True))
+    except Exception:
+        return None, []
+    out: list[str] = []
+    _ts_items(result.structure, 0, out)
+    return lang, out
+
+
+def _ts_items(items, depth: int, out: list[str]) -> None:
+    for item in items:
+        if len(out) > MAX_ENTRIES:
+            return
+        span = item.span
+        start, end = span.start_line + 1, span.end_line + 1  # tree-sitter rows are 0-based
+        where = f"L{start}-{end}" if end != start else f"L{start}"
+        kind = str(getattr(item.kind, "type", item.kind)).lower()
+        sig = " ".join((item.signature or item.name or "").split())
+        label = sig if sig and (item.name or "") in sig else f"{kind} {item.name or sig}".strip()
+        doc = (item.doc_comment or "").strip()
+        doc = f"  # {_clip(doc.splitlines()[0].strip('/* '))}" if doc else ""
+        out.append(f"{where}: {'  ' * depth}{_clip(label)}{doc}")
+        if depth < 3:
+            _ts_items(item.children, depth + 1, out)
 
 
 def _clip(s: str) -> str:

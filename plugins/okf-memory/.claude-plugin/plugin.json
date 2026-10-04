@@ -12,7 +12,7 @@
     "max_bytes": {
       "type": "string",
       "title": "Full-read size limit (bytes)",
-      "description": "A full Read of a file larger than this is answered with the file's memory instead. 0 disables interception.",
+      "description": "A full Read of a file larger than this shows Claude the file's memory instead of its content. 0 disables replacement.",
       "default": "20000"
     },
     "memory_dir": {
