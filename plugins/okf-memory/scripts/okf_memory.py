@@ -23,6 +23,11 @@ PostToolUseFailure(Read)
 PostToolUse(Edit|Write|MultiEdit), and ranged Reads
     Refresh an existing memory whose source changed. Never create one.
 
+The memory dir is an OKF bundle: every time a memory is created or
+regenerated, the bundle-root `index.md` gets an entry for it (created with
+`okf_version` when missing) and the bundle-root `log.md` an entry under
+today's date.
+
 A memory's `# Notes` section is hand-written (by people or by Claude) and is
 preserved verbatim across regeneration; everything above it is generated.
 
@@ -37,15 +42,24 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
+
+try:
+    import fcntl
+except ImportError:  # Windows: index/log updates go unlocked
+    fcntl = None
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import outline as outline_mod  # noqa: E402
 
+PRODUCER = "okf-memory/0.1.0"  # OKF actor `<producer>/<version>`; keep in step with plugin.json
+OKF_VERSION = "0.2"
 DEFAULT_MAX_BYTES = 20000
 DEFAULT_MEMORY_DIR = ".memory"
 # Serve the memory only when it is at most this fraction of the source size.
@@ -62,6 +76,13 @@ BINARY_EXTS = {
     "wav", "ogg", "woff", "woff2", "ttf", "otf", "sqlite", "db", "parquet",
 }
 SKIP_DIRS = {".git", ".hg", ".svn"}
+# `<name>.md` is reserved at every level of an OKF bundle, so a source with
+# one of these exact names cannot have a memory.
+RESERVED_STEMS = {"index", "log"}
+INDEX_HEADING = "# Source Memories"
+LOG_HEADING = "# Memory Update Log"
+LOCK_NAME = ".okf-memory.lock"
+DATE_HEADING = re.compile(r"^## \d{4}-\d{2}-\d{2}\s*$")
 
 
 def option(key: str, default: str = "") -> str:
@@ -98,7 +119,7 @@ def memory_path(root: Path, source: Path) -> Path | None:
     mem_root = memory_root(root)
     if source == mem_root or mem_root in source.parents:
         return None  # never take memories of memories
-    if SKIP_DIRS & set(rel.parts):
+    if SKIP_DIRS & set(rel.parts) or rel.name in RESERVED_STEMS:
         return None
     return mem_root / rel.parent / (rel.name + ".md")
 
@@ -149,7 +170,7 @@ def _yaml_str(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)  # a JSON string is a valid YAML scalar
 
 
-def build_memory(rel: str, source: Path, data: bytes, notes: str) -> str:
+def build_memory(rel: str, source: Path, mem: Path, data: bytes, notes: str) -> str:
     text = data.decode("utf-8", errors="replace")
     n_lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
     lang = outline_mod.language(source)
@@ -157,15 +178,18 @@ def build_memory(rel: str, source: Path, data: bytes, notes: str) -> str:
     dropped = max(0, len(entries) - outline_mod.MAX_ENTRIES)
     entries = entries[: outline_mod.MAX_ENTRIES]
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Relative to the concept itself, so the path resolves as OKF §6 reads it.
+    link = Path(os.path.relpath(source, mem.parent)).as_posix()
 
     parts = [
         "---",
         "type: Source Memory",
         f"title: {_yaml_str(rel)}",
         f"description: {_yaml_str(f'Structural outline of {rel} ({lang}, {n_lines} lines).')}",
-        f"resource: {_yaml_str(rel)}",
+        f"resource: {_yaml_str(link)}",
         "tags: [okf-memory]",
-        f"generated: {{ by: okf-memory, at: {now} }}",
+        f"sources: [{{ id: source, resource: {_yaml_str(link)}, title: {_yaml_str(rel)} }}]",
+        f"generated: {{ by: {PRODUCER}, at: {now} }}",
         f"source_sha256: {sha256(data)}",
         f"source_bytes: {len(data)}",
         f"source_lines: {n_lines}",
@@ -199,10 +223,102 @@ def write_atomic(path: Path, content: str) -> None:
         raise
 
 
+class _BundleLock:
+    """Serialize read-modify-write of `index.md`/`log.md` across parallel hooks."""
+
+    def __init__(self, mem_root: Path):
+        self.path = mem_root / LOCK_NAME
+        self.fh = None
+
+    def __enter__(self):
+        if fcntl is not None:
+            self.fh = open(self.path, "a")
+            fcntl.flock(self.fh, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, *exc):
+        if self.fh is not None:
+            fcntl.flock(self.fh, fcntl.LOCK_UN)
+            self.fh.close()
+
+
+def _md_link(mem_root: Path, mem: Path, title: str) -> str:
+    target = quote(mem.relative_to(mem_root).as_posix(), safe="/")
+    label = title.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    return f"[{label}]({target})"
+
+
+def update_index(mem_root: Path, mem: Path, title: str, description: str) -> None:
+    """Upsert the memory's entry in the bundle-root `index.md`.
+
+    Only the lines of the `INDEX_HEADING` section that start with `* [` are
+    rewritten (sorted by link); everything else in the file is kept.
+    """
+    link = _md_link(mem_root, mem, title)
+    target = link[link.rindex("](") :]  # "](path)" - the upsert key
+    entry = f"* {link} - {description}"
+    index = mem_root / "index.md"
+    text = index.read_text(encoding="utf-8") if index.is_file() else (
+        f'---\nokf_version: "{OKF_VERSION}"\n---\n\n{INDEX_HEADING}\n\n'
+    )
+    lines = text.splitlines()
+    try:
+        start = lines.index(INDEX_HEADING)
+    except ValueError:
+        lines += ([""] if lines and lines[-1] else []) + [INDEX_HEADING, ""]
+        start = len(lines) - 2
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("# ")), len(lines))
+    section = lines[start + 1 : end]
+    entries = [ln for ln in section if ln.startswith("* [") and target not in ln] + [entry]
+    entries.sort(key=lambda ln: ln[ln.find("](") :])
+    others = [ln for ln in section if not ln.startswith("* [") and ln.strip()]
+    body = [""] + others + ([""] if others else []) + entries + [""]
+    lines[start + 1 : end] = body
+    write_atomic(index, "\n".join(lines).rstrip("\n") + "\n")
+
+
+def update_log(mem_root: Path, mem: Path, title: str, created: bool) -> None:
+    """Add an entry for the memory under today's date in the bundle-root `log.md`.
+
+    Newest first, as OKF §9 lays it out. An identical entry already under
+    today's heading is not repeated, so a file edited ten times in a day logs
+    one update.
+    """
+    link = _md_link(mem_root, mem, title)
+    entry = (f"* **Creation**: Memory of the source file, {link}." if created
+             else f"* **Update**: Regenerated {link} after its source file changed.")
+    today = datetime.now(timezone.utc).strftime("## %Y-%m-%d")
+    log = mem_root / "log.md"
+    text = log.read_text(encoding="utf-8") if log.is_file() else f"{LOG_HEADING}\n"
+    lines = text.splitlines()
+    first = next((i for i, ln in enumerate(lines) if DATE_HEADING.match(ln)), None)
+    if first is not None and lines[first].strip() == today:
+        end = next((i for i in range(first + 1, len(lines)) if lines[i].startswith("#")), len(lines))
+        if entry in lines[first + 1 : end]:
+            return
+        lines.insert(first + 1, entry)
+    else:
+        at = first if first is not None else len(lines)
+        block = [today, entry, ""]
+        if at == len(lines) and lines and lines[-1]:
+            block.insert(0, "")
+        lines[at:at] = block
+    write_atomic(log, "\n".join(lines).rstrip("\n") + "\n")
+
+
+def record_in_bundle(mem_root: Path, mem: Path, content: str, created: bool) -> None:
+    meta = read_frontmatter(content)
+    title = meta.get("title") or mem.name[:-3]
+    with _BundleLock(mem_root):
+        update_index(mem_root, mem, title, meta.get("description", ""))
+        update_log(mem_root, mem, title, created)
+
+
 def ensure_memory(root: Path, source: Path, mem: Path, data: bytes, create: bool) -> str | None:
     """Return up-to-date memory text, (re)writing it if missing or stale.
 
     With `create=False`, a missing memory stays missing and None is returned.
+    A write also records the memory in the bundle's root `index.md`/`log.md`.
     """
     existing = mem.read_text(encoding="utf-8", errors="replace") if mem.is_file() else None
     if existing is None and not create:
@@ -210,8 +326,9 @@ def ensure_memory(root: Path, source: Path, mem: Path, data: bytes, create: bool
     if existing is not None and read_frontmatter(existing).get("source_sha256") == sha256(data):
         return existing
     rel = source.relative_to(root).as_posix()
-    content = build_memory(rel, source, data, notes_section(existing or ""))
+    content = build_memory(rel, source, mem, data, notes_section(existing or ""))
     write_atomic(mem, content)
+    record_in_bundle(memory_root(root), mem, content, created=existing is None)
     return content
 
 
@@ -255,6 +372,8 @@ def memory_for(payload: dict) -> str | None:
         "margin around this text belongs to the memory itself. Read the ranges you need "
         "with Read `offset`/`limit` - ranged reads always return real content (use one "
         "spanning the whole file when you truly need all of it). "
+        f"To find what the outline does not show (a string, a call site, a constant), "
+        f"use Grep on `{rel}` with line numbers, then Read only the range around the match. "
         f"Durable facts about this file can be added under `{NOTES_HEADING}` in the memory; "
         "that section survives regeneration.\n\n"
         f"{content}"

@@ -20,8 +20,48 @@ One script (`scripts/okf_memory.py`), two events:
 | `PostToolUse` | `Edit\|Write\|MultiEdit`, ranged `Read` | Refreshes an **existing** memory whose source changed. Never creates one. |
 
 A source at `path/to/file.ext` has its memory at
-`.memory/path/to/file.ext.md`. The extension stays in the name so `app.py`
-and `app.js` never share a memory.
+`.memory/path/to/file.ext.md`: the source's own path under `.memory/`, plus
+the `.md` every OKF concept needs. The extension stays in the name so
+`app.py` and `app.js` never share a memory. A file named exactly `index` or
+`log` (no extension) gets no memory: `index.md` and `log.md` are reserved
+OKF names at every level.
+
+The reply Claude sees also tells it to use `Grep` on the original file to
+find what the outline does not show (a string, a call site, a constant),
+then Read only the range around the match.
+
+### `.memory/` is an OKF bundle
+
+Every time a memory is created or regenerated, the hook also maintains the
+bundle-root files, so `.memory/` stays a valid OKF v0.2 bundle:
+
+- `.memory/index.md` — created with `okf_version: "0.2"` if missing. Under
+  `# Source Memories` it holds one entry per memory, sorted by path, with
+  the memory's `description`; a refresh updates the entry in place. Anything
+  else in the file is kept.
+- `.memory/log.md` — newest date first, one entry per change:
+  `**Creation**` for a new memory, `**Update**` for a regeneration. The same
+  entry is not repeated under one date, so ten edits of a file in a day log
+  one update.
+
+```markdown
+# Memory Update Log
+
+## 2026-10-04
+* **Update**: Regenerated [src/billing.py](src/billing.py.md) after its source file changed.
+* **Creation**: Memory of the source file, [src/billing.py](src/billing.py.md).
+```
+
+Only memories written after this behaviour shipped are listed; an older
+memory joins the index on its next regeneration. Parallel hooks serialize
+their `index.md`/`log.md` updates with a lock file
+(`.memory/.okf-memory.lock`); on Windows there is no lock, so two memories
+created at the same instant can race and one index entry can be lost until
+that memory is next regenerated.
+
+If you set `memory_dir` to a directory that is not a dotdir, `okf-reader`'s
+auto-discovery will find its `okf_version` and load it as a normative
+bundle. Keep it a dotdir (the default) unless you want that.
 
 ### What is never replaced
 
@@ -49,9 +89,10 @@ already current.
 type: Source Memory
 title: "src/billing.py"
 description: "Structural outline of src/billing.py (Python, 812 lines)."
-resource: "src/billing.py"
+resource: "../../src/billing.py"
 tags: [okf-memory]
-generated: { by: okf-memory, at: 2026-10-03T20:38:49Z }
+sources: [{ id: source, resource: "../../src/billing.py", title: "src/billing.py" }]
+generated: { by: okf-memory/0.1.0, at: 2026-10-03T20:38:49Z }
 source_sha256: 99f1…
 source_bytes: 31207
 source_lines: 812
@@ -71,6 +112,9 @@ Language: Python. Method: syntax tree (Python ast). Line numbers are 1-based.
 
 <!-- Hand-written. Everything from this heading down survives regeneration. -->
 ```
+
+`resource` and `sources[].resource` are relative to the memory file itself,
+so they resolve to the source as OKF §6 reads a relative path.
 
 Everything above `# Notes` is generated and overwritten on refresh.
 Everything from `# Notes` down is yours — and Claude's: it is told it may

@@ -38,6 +38,13 @@ covers what breaks when you edit the implementation.
   existing one (`create=False`) and print nothing.
 - Memory path keeps the source extension (`file.ext.md`) — changing it to
   `file.md` makes same-stem files collide.
+- A memory write (create or regenerate, in `ensure_memory()`) also calls
+  `record_in_bundle()`: upsert in the root `index.md`, entry in the root
+  `log.md`, under `_BundleLock`. Serving a fresh memory writes nothing.
+- `memory_path()` returns None for sources named `index`/`log`: their
+  memory would be a reserved OKF filename.
+- `PRODUCER` (`okf-memory/<version>`) must follow `version` in
+  `plugin.json`.
 - **No network in hooks.** `_tree_sitter()` must check
   `downloaded_languages()` before `process()`: the pack downloads a missing
   grammar on demand. `test_uncached_grammar_is_never_requested` guards it.

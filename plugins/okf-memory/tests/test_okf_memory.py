@@ -217,6 +217,89 @@ class PostToolTests(TmpProjectTestCase):
         self.assertFalse((self.root / ".memory").exists())
 
 
+class BundleTests(TmpProjectTestCase):
+    """The memory dir is an OKF bundle: root index.md and log.md track every write."""
+
+    def test_reply_points_at_grep_on_the_source(self):
+        src = write(self.root, "pkg/mod.py", big_python())
+        self.assertIn("use Grep on `pkg/mod.py`", self.shown(self.pre(src)[0]))
+
+    def test_resource_and_source_resolve_from_the_concept(self):
+        src = write(self.root, "pkg/sub/mod.py", big_python())
+        self.pre(src)
+        mem = self.root / ".memory/pkg/sub/mod.py.md"
+        meta = okf_memory.read_frontmatter(mem.read_text())
+        self.assertEqual(meta["resource"], "../../../pkg/sub/mod.py")
+        self.assertEqual((mem.parent / meta["resource"]).resolve(), src)
+        self.assertIn('resource: "../../../pkg/sub/mod.py"', meta["sources"])
+        self.assertTrue(meta["generated"].startswith("{ by: okf-memory/"))
+
+    def test_creation_writes_root_index_and_log(self):
+        self.pre(write(self.root, "pkg/mod.py", big_python()))
+        self.pre(write(self.root, "app.py", big_python()))
+        index = (self.root / ".memory/index.md").read_text()
+        self.assertTrue(index.startswith('---\nokf_version: "0.2"\n---\n\n# Source Memories\n'))
+        n = big_python().count("\n")
+        entries = [ln for ln in index.splitlines() if ln.startswith("* [")]
+        self.assertEqual(entries, [
+            f"* [app.py](app.py.md) - Structural outline of app.py (Python, {n} lines).",
+            f"* [pkg/mod.py](pkg/mod.py.md) - Structural outline of pkg/mod.py (Python, {n} lines).",
+        ])
+        log = (self.root / ".memory/log.md").read_text().splitlines()
+        self.assertEqual(log[0], "# Memory Update Log")
+        self.assertRegex(log[2], r"^## \d{4}-\d{2}-\d{2}$")
+        self.assertEqual(log[3:5], [
+            "* **Creation**: Memory of the source file, [app.py](app.py.md).",
+            "* **Creation**: Memory of the source file, [pkg/mod.py](pkg/mod.py.md).",
+        ])
+
+    def test_refresh_updates_index_entry_and_logs_once_per_day(self):
+        src = write(self.root, "mod.py", big_python())
+        self.pre(src)
+        for i in range(3):
+            src.write_text(big_python() + f"\ndef edit_{i}():\n    pass\n")
+            self.post("Edit", src)
+        index = (self.root / ".memory/index.md").read_text()
+        self.assertEqual(index.count("](mod.py.md)"), 1)
+        self.assertIn(f"(Python, {big_python().count(chr(10)) + 3} lines)", index)
+        log = (self.root / ".memory/log.md").read_text()
+        self.assertEqual(log.count("**Update**"), 1)
+        self.assertEqual(log.count("**Creation**"), 1)
+        self.assertLess(log.index("**Update**"), log.index("**Creation**"))
+
+    def test_fresh_memory_served_again_does_not_touch_the_log(self):
+        src = write(self.root, "mod.py", big_python())
+        self.pre(src)
+        log = self.root / ".memory/log.md"
+        before = log.read_text()
+        self.pre(src)
+        self.assertEqual(log.read_text(), before)
+
+    def test_existing_index_and_log_content_is_kept(self):
+        write(self.root, ".memory/index.md", "# Hand-made\n\n* [Guide](guide.md) - mine\n")
+        write(self.root, ".memory/log.md",
+              "# Memory Update Log\n\n## 2000-01-01\n* **Initialization**: Created.\n")
+        self.pre(write(self.root, "mod.py", big_python()))
+        index = (self.root / ".memory/index.md").read_text()
+        self.assertTrue(index.startswith("# Hand-made\n\n* [Guide](guide.md) - mine\n"))
+        self.assertNotIn("okf_version", index)
+        self.assertIn("# Source Memories\n\n* [mod.py](mod.py.md)", index)
+        log = (self.root / ".memory/log.md").read_text()
+        self.assertLess(log.index("**Creation**"), log.index("## 2000-01-01"))
+        self.assertIn("* **Initialization**: Created.", log)
+
+    def test_reserved_names_never_get_a_memory(self):
+        for name in ("index", "log", "docs/index"):
+            src = write(self.root, name, big_python())
+            self.assertEqual(self.pre(src)[0], "")
+        self.assertFalse((self.root / ".memory").exists())
+
+    def test_link_is_url_quoted_and_label_escaped(self):
+        self.pre(write(self.root, "my dir/a[1].py", big_python()))
+        index = (self.root / ".memory/index.md").read_text()
+        self.assertIn("* [my dir/a\\[1\\].py](my%20dir/a%5B1%5D.py.md) - ", index)
+
+
 class OutlineTests(unittest.TestCase):
     def setUp(self) -> None:
         # Regex/stdlib strategies are tested without tree-sitter, whatever is installed.
