@@ -10,6 +10,7 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -403,6 +404,17 @@ class OutlineTests(unittest.TestCase):
         _, entries = outline.outline(Path("x.ts"), ts)
         self.assertEqual([e.split(":")[0] for e in entries], ["L1", "L4", "L5", "L6"])
 
+    def test_pretty_json_key_tree_has_line_numbers(self):
+        data = {"name": "x", "deps": {"a": {"version": "1"}},
+                "items": [{"id": 1}, {"id": 2, "extra": True}]}
+        method, entries = outline.outline(Path("x.json"), json.dumps(data, indent=2))
+        self.assertEqual(method, "key tree (JSON)")
+        self.assertEqual(entries, [
+            "L1: $: object{3}", "L2:   .name: string", "L3:   .deps: object{1}",
+            "L4:     .deps.a: object{1}", "L5:       .deps.a.version: string",
+            "L8:   .items: array[2] of object{1}", "L10:     .items[0].id: int",
+            "L14:     .items[0].extra: bool"])
+
     def test_json_key_tree(self):
         _, entries = outline.outline(Path("x.json"), json.dumps({"a": {"b": [1, 2]}, "c": "s"}))
         self.assertEqual(entries, ["$: object{2}", "  .a: object{1}", "    .a.b: array[2] of int", "  .c: string"])
@@ -438,6 +450,81 @@ class FakePack:
         return type("R", (), {"structure": [
             item("Class", "Bar", "class Bar extends Baz", 2, 9,
                  [item("Method", "baz", "private baz(x: number): void", 4, 6)])]})()
+
+
+class GeneratedFileTests(TmpProjectTestCase):
+    def lockfile(self) -> str:
+        packages = {f"node_modules/p{i}": {"version": f"1.0.{i}", "resolved": "https://x/" + "y" * 60,
+                                           "integrity": "sha512-" + "z" * 80} for i in range(200)}
+        return json.dumps({"name": "app", "lockfileVersion": 3, "packages": packages}, indent=2)
+
+    def test_lockfile_outline_is_served_but_not_stored(self):
+        src = write(self.root, "package-lock.json", self.lockfile())
+        shown = self.shown(self.pre(src)[0])
+        self.assertIn("generated file: not stored", shown)
+        self.assertRegex(shown, r'L\d+:     \.packages\.node_modules/p7: object\{3\}')
+        self.assertNotIn(okf_memory.NOTES_HEADING, shown)
+        self.assertFalse((self.root / ".memory").exists())
+
+    def test_dependency_and_build_dirs_are_not_stored(self):
+        for rel in ("node_modules/lib/big.py", "build/gen.py", "pkg/dist/out.py", "app.min.py"):
+            src = write(self.root, rel, big_python())
+            self.assertIn("generated file: not stored", self.shown(self.pre(src)[0]), rel)
+        self.assertFalse((self.root / ".memory").exists())
+
+    def test_a_dir_named_like_a_generated_file_is_not_generated(self):
+        src = write(self.root, "yarn.lock/real.py", big_python())
+        self.pre(src)
+        self.assertTrue((self.root / ".memory/yarn.lock/real.py.md").is_file())
+
+
+class PruneTests(TmpProjectTestCase):
+    PRUNE = Path(__file__).resolve().parents[1] / "bin" / "okf-memory-prune"
+
+    def prune(self, *args: str) -> str:
+        proc = subprocess.run([sys.executable, str(self.PRUNE), "--project", str(self.root), *args],
+                              capture_output=True, text=True, check=True)
+        return proc.stdout
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.keep = write(self.root, "keep.py", big_python())
+        self.gone = write(self.root, "sub/gone.py", big_python())
+        self.pre(self.keep), self.pre(self.gone)
+        self.gone.unlink()
+        self.mem = self.root / ".memory"
+
+    def test_dry_run_reports_and_changes_nothing(self):
+        before = {p: p.read_bytes() for p in self.mem.rglob("*") if p.is_file()}
+        out = self.prune()
+        self.assertIn("would remove .memory/sub/gone.py.md (source sub/gone.py is gone)", out)
+        self.assertIn("dry run", out)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.mem.rglob("*") if p.is_file()})
+
+    def test_apply_removes_memory_index_entry_and_logs_it(self):
+        out = self.prune("--apply")
+        self.assertIn("removed 1 memory, 1 index entry", out)
+        self.assertFalse((self.mem / "sub").exists())
+        self.assertTrue((self.mem / "keep.py.md").is_file())
+        index = (self.mem / "index.md").read_text()
+        self.assertNotIn("gone.py", index)
+        self.assertIn("[keep.py](keep.py.md)", index)
+        self.assertIn("* **Deletion**: Removed the memory of `sub/gone.py`", (self.mem / "log.md").read_text())
+        self.assertIn("nothing to prune", self.prune())
+
+    def test_notes_are_flagged_and_foreign_files_are_left_alone(self):
+        mem = self.mem / "sub/gone.py.md"
+        mem.write_text(mem.read_text() + "a fact worth keeping\n")
+        write(self.root, ".memory/handwritten.md", "---\ntype: Concept\n---\n\nmine\n")
+        self.assertIn("[has notes - they will be lost]", self.prune())
+        self.prune("--apply")
+        self.assertTrue((self.mem / "handwritten.md").is_file())
+
+    def test_index_entry_for_a_missing_memory_is_dropped(self):
+        (self.mem / "keep.py.md").unlink()
+        self.assertIn("would remove 2 index entries", self.prune())  # keep.py + gone.py
+        self.prune("--apply")
+        self.assertNotIn("keep.py", (self.mem / "index.md").read_text())
 
 
 class TreeSitterTests(unittest.TestCase):

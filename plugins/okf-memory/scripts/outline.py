@@ -144,9 +144,13 @@ def outline(path: Path, text: str) -> tuple[str, list[str]]:
         return "heading tree", _markdown(lines)
     if ext == "json":
         try:
-            return "key tree (no line numbers: JSON)", _json(json.loads(text))
+            data = json.loads(text)
         except ValueError:
             return "none (invalid JSON)", []
+        entries = _json_lines(lines, data) if len(lines) > 1 else []
+        if entries:
+            return "key tree (JSON)", entries
+        return "key tree (no line numbers: JSON)", _json(data)
     ts_lang, entries = _tree_sitter(path, text)
     if entries:
         return f"syntax tree (tree-sitter, {ts_lang})", entries
@@ -239,15 +243,59 @@ def _markdown(lines: list[str]) -> list[str]:
     return out
 
 
-def _json(data, prefix: str = "", depth: int = 0) -> list[str]:
-    def kind(v) -> str:
-        if isinstance(v, dict):
-            return f"object{{{len(v)}}}"
-        if isinstance(v, list):
-            inner = f" of {kind(v[0])}" if v else ""
-            return f"array[{len(v)}]{inner}"
-        return type(v).__name__.replace("NoneType", "null").replace("str", "string")
+def _json_kind(v) -> str:
+    if isinstance(v, dict):
+        return f"object{{{len(v)}}}"
+    if isinstance(v, list):
+        inner = f" of {_json_kind(v[0])}" if v else ""
+        return f"array[{len(v)}]{inner}"
+    return type(v).__name__.replace("NoneType", "null").replace("str", "string")
 
+
+_JSON_KEY = re.compile(r'^(\s*)"((?:[^"\\]|\\.)*)"\s*:\s*(.*)$')
+_MISSING = object()
+
+
+def _json_lines(lines: list[str], data) -> list[str]:
+    """Key tree of pretty-printed JSON (one key per line), with line numbers.
+
+    Nesting comes from indentation. Keys of an array of objects are listed
+    once, under `[0]`, as `_json()` does; 3 levels deep at most.
+    """
+    first = next((n for n, ln in enumerate(lines, 1) if ln.strip()), 1)
+    out = [f"L{first}: $: {_json_kind(data)}"]
+    root_prefix = "[0]" if isinstance(data, list) else ""
+    stack: list[tuple[int, str, object]] = []  # (indent, path, value) of open containers
+    seen: set[str] = set()
+    for n, line in enumerate(lines, 1):
+        m = _JSON_KEY.match(line)
+        if not m:
+            continue
+        indent, rest = len(m.group(1)), m.group(3)
+        try:
+            key = json.loads(f'"{m.group(2)}"')
+        except ValueError:
+            continue
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        prefix, parent = (stack[-1][1], stack[-1][2]) if stack else (root_prefix, data)
+        if isinstance(parent, list):  # an array of objects: look in the first that has it
+            parent = next((o for o in parent if isinstance(o, dict) and key in o), None)
+        value = parent.get(key, _MISSING) if isinstance(parent, dict) else _MISSING
+        path = f"{prefix}.{key}"
+        depth = len(stack)
+        if depth < 3 and path not in seen:
+            seen.add(path)
+            kind = _json_kind(value) if value is not _MISSING else (
+                "object" if rest.startswith("{") else "array" if rest.startswith("[") else "value")
+            out.append(f"L{n}: {'  ' * (depth + 1)}{path}: {kind}")
+        if rest.startswith(("{", "[")) and not rest.rstrip(",").endswith(("}", "]")):
+            stack.append((indent, path + ("[0]" if rest.startswith("[") else ""), value))
+    return out if len(out) > 1 else []
+
+
+def _json(data, prefix: str = "", depth: int = 0) -> list[str]:
+    kind = _json_kind
     out = [f"{prefix or '$'}: {kind(data)}"] if depth == 0 else []
     if depth >= 3:
         return out

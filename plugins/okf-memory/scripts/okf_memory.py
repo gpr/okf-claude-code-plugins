@@ -47,7 +47,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 try:
     import fcntl
@@ -79,6 +79,13 @@ SKIP_DIRS = {".git", ".hg", ".svn"}
 # `<name>.md` is reserved at every level of an OKF bundle, so a source with
 # one of these exact names cannot have a memory.
 RESERVED_STEMS = {"index", "log"}
+# Generated files: worth an outline when Claude reads them in full, not worth
+# a stored memory (nobody keeps notes on a lockfile, and they churn).
+GENERATED_DIRS = {"node_modules", "bower_components", ".venv", "venv", "__pycache__",
+                  "dist", "build", "target", ".next", ".nuxt", "coverage"}
+GENERATED_NAMES = {"package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml",
+                   "bun.lock", "Cargo.lock", "poetry.lock", "Pipfile.lock", "uv.lock",
+                   "composer.lock", "Gemfile.lock", "go.sum", "flake.lock"}
 INDEX_HEADING = "# Source Memories"
 LOG_HEADING = "# Memory Update Log"
 LOCK_NAME = ".okf-memory.lock"
@@ -264,15 +271,13 @@ def _md_link(mem_root: Path, mem: Path, title: str) -> str:
     return f"[{label}]({target})"
 
 
-def update_index(mem_root: Path, mem: Path, title: str, description: str) -> None:
-    """Upsert the memory's entry in the bundle-root `index.md`.
+def _rewrite_index(mem_root: Path, edit) -> None:
+    """Rewrite the entry lines of the bundle-root `index.md`'s `INDEX_HEADING` section.
 
-    Only the lines of the `INDEX_HEADING` section that start with `* [` are
-    rewritten (sorted by link); everything else in the file is kept.
+    `edit(entries)` gets the section's `* [` lines and returns the new ones,
+    which are written sorted by link; everything else in the file is kept.
+    The file is created (with `okf_version`) when missing.
     """
-    link = _md_link(mem_root, mem, title)
-    target = link[link.rindex("](") :]  # "](path)" - the upsert key
-    entry = f"* {link} - {description}"
     index = mem_root / "index.md"
     text = index.read_text(encoding="utf-8") if index.is_file() else (
         f'---\nokf_version: "{OKF_VERSION}"\n---\n\n{INDEX_HEADING}\n\n'
@@ -285,7 +290,7 @@ def update_index(mem_root: Path, mem: Path, title: str, description: str) -> Non
         start = len(lines) - 2
     end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("# ")), len(lines))
     section = lines[start + 1 : end]
-    entries = [ln for ln in section if ln.startswith("* [") and target not in ln] + [entry]
+    entries = edit([ln for ln in section if ln.startswith("* [")])
     entries.sort(key=lambda ln: ln[ln.find("](") :])
     others = [ln for ln in section if not ln.startswith("* [") and ln.strip()]
     body = [""] + others + ([""] if others else []) + entries + [""]
@@ -293,16 +298,41 @@ def update_index(mem_root: Path, mem: Path, title: str, description: str) -> Non
     write_atomic(index, "\n".join(lines).rstrip("\n") + "\n")
 
 
-def update_log(mem_root: Path, mem: Path, title: str, created: bool) -> None:
-    """Add an entry for the memory under today's date in the bundle-root `log.md`.
+def index_target(entry: str) -> str:
+    """The memory path an index entry links to, relative to the bundle root."""
+    start = entry.find("](") + 2
+    return unquote(entry[start : entry.find(")", start)])
+
+
+def update_index(mem_root: Path, mem: Path, title: str, description: str) -> None:
+    """Upsert the memory's entry in the bundle-root `index.md`."""
+    link = _md_link(mem_root, mem, title)
+    target = link[link.rindex("](") :]  # "](path)" - the upsert key
+    _rewrite_index(mem_root, lambda entries: [
+        ln for ln in entries if target not in ln] + [f"* {link} - {description}"])
+
+
+def remove_from_index(mem_root: Path, drop) -> list[str]:
+    """Remove the index entries whose `index_target()` satisfies `drop`; return them."""
+    if not (mem_root / "index.md").is_file():
+        return []
+    removed: list[str] = []
+
+    def edit(entries: list[str]) -> list[str]:
+        removed.extend(ln for ln in entries if drop(index_target(ln)))
+        return [ln for ln in entries if ln not in removed]
+
+    _rewrite_index(mem_root, edit)
+    return removed
+
+
+def add_log_entry(mem_root: Path, entry: str) -> None:
+    """Add `entry` under today's date in the bundle-root `log.md`.
 
     Newest first, as OKF §9 lays it out. An identical entry already under
     today's heading is not repeated, so a file edited ten times in a day logs
     one update.
     """
-    link = _md_link(mem_root, mem, title)
-    entry = (f"* **Creation**: Memory of the source file, {link}." if created
-             else f"* **Update**: Regenerated {link} after its source file changed.")
     today = datetime.now(timezone.utc).strftime("## %Y-%m-%d")
     log = mem_root / "log.md"
     text = log.read_text(encoding="utf-8") if log.is_file() else f"{LOG_HEADING}\n"
@@ -320,6 +350,13 @@ def update_log(mem_root: Path, mem: Path, title: str, created: bool) -> None:
             block.insert(0, "")
         lines[at:at] = block
     write_atomic(log, "\n".join(lines).rstrip("\n") + "\n")
+
+
+def update_log(mem_root: Path, mem: Path, title: str, created: bool) -> None:
+    """Log the creation or regeneration of a memory."""
+    link = _md_link(mem_root, mem, title)
+    add_log_entry(mem_root, f"* **Creation**: Memory of the source file, {link}." if created
+                  else f"* **Update**: Regenerated {link} after its source file changed.")
 
 
 def record_in_bundle(mem_root: Path, mem: Path, content: str, created: bool) -> None:
@@ -367,6 +404,12 @@ def ensure_memory(root: Path, source: Path, mem: Path, data: bytes, create: bool
     return content
 
 
+def is_generated(rel: Path) -> bool:
+    """A lockfile, minified bundle, or file under a dependency/build output dir."""
+    return (rel.name in GENERATED_NAMES or ".min." in rel.name
+            or bool(GENERATED_DIRS & set(rel.parts[:-1])))
+
+
 def is_full_read(payload: dict) -> bool:
     tool_input = payload.get("tool_input") or {}
     return tool_input.get("offset") is None and tool_input.get("limit") is None
@@ -375,7 +418,8 @@ def is_full_read(payload: dict) -> bool:
 def memory_for(payload: dict) -> str | None:
     """The text to show Claude instead of a full Read, or None to leave it alone.
 
-    Creates or refreshes the memory as a side effect.
+    Creates or refreshes the memory as a side effect, except for generated
+    files (`is_generated()`), whose outline is served but never stored.
     """
     if payload.get("tool_name") != "Read" or not is_full_read(payload):
         return None  # ranged read: the reader already knows what it wants
@@ -393,22 +437,31 @@ def memory_for(payload: dict) -> str | None:
     data = source.read_bytes()
     if is_binary(source, data):
         return None
-    content = ensure_memory(root, source, mem, data, create=True)
+    rel = source.relative_to(root).as_posix()
+    generated = is_generated(Path(rel))
+    if generated:  # outline only: nothing is stored, so there are no notes either
+        content = build_memory(rel, source, mem, data, "")
+    else:
+        content = ensure_memory(root, source, mem, data, create=True)
     if not content or not servable(content, size):
         return None  # no outline, or too little saved: the full content is the better answer
-    rel = source.relative_to(root).as_posix()
-    mem_rel = mem.relative_to(root).as_posix()
+    if generated:
+        what = "its outline (generated file: not stored, no notes)"
+        notes = ""
+    else:
+        what = f"its memory (`{mem.relative_to(root).as_posix()}`)"
+        notes = (f"Durable facts about this file can be added under `{NOTES_HEADING}` in the "
+                 "memory; that section survives regeneration.")
     return (
         f"okf-memory: `{rel}` is {size:,} bytes, over the {limit:,}-byte full-read limit, "
-        f"so this result is its memory (`{mem_rel}`), not the file content.\n"
+        f"so this result is {what}, not the file content.\n"
         "The `L<n>` entries below are line numbers in the source file; any line-number "
         "margin around this text belongs to the memory itself. Read the ranges you need "
         "with Read `offset`/`limit` - ranged reads always return real content (use one "
         "spanning the whole file when you truly need all of it). "
         f"To find what the outline does not show (a string, a call site, a constant), "
         f"use Grep on `{rel}` with line numbers, then Read only the range around the match. "
-        f"Durable facts about this file can be added under `{NOTES_HEADING}` in the memory; "
-        "that section survives regeneration.\n\n"
+        f"{notes}".rstrip() + "\n\n"
         f"{content}"
     )
 
