@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -138,6 +139,56 @@ class PreReadTests(TmpProjectTestCase):
         os.environ["CLAUDE_PLUGIN_OPTION_MEMORY_DIR"] = "kb/mem"
         self.assertNotEqual(self.pre(src)[0], "")
         self.assertTrue((self.root / "kb/mem/mod.py.md").is_file())
+
+    def test_memory_dir_outside_a_project_subdir_disables_the_plugin(self):
+        src = write(self.root, "mod.py", big_python())
+        outside = self.root.parent / f"{self.root.name}-outside"
+        self.addCleanup(lambda: shutil.rmtree(outside, ignore_errors=True))
+        for value in (".", "..", f"../{outside.name}", str(outside), "sub/../.."):
+            os.environ["CLAUDE_PLUGIN_OPTION_MEMORY_DIR"] = value
+            self.assertEqual(self.pre(src), ("", ""), value)
+        self.assertFalse(outside.exists())
+
+    def test_memory_dir_tilde_is_expanded_not_created_literally(self):
+        src = write(self.root, "mod.py", big_python())
+        os.environ["HOME"] = str(self.root)
+        os.environ["CLAUDE_PLUGIN_OPTION_MEMORY_DIR"] = "~/.mem"
+        self.assertNotEqual(self.pre(src)[0], "")
+        self.assertTrue((self.root / ".mem/mod.py.md").is_file())
+        self.assertFalse((self.root / "~").exists())
+
+    def test_unserved_memory_is_not_written(self):
+        os.environ["CLAUDE_PLUGIN_OPTION_MAX_BYTES"] = "2000"
+        sources = [
+            write(self.root, "data.csv", "a,b,c\n" * 3000),           # no outline
+            write(self.root, "min.js", "var a=1;" * 3000 + "\n"),     # minified
+            write(self.root, "dense.py", "".join(f"def f{i}(): return {i}\n" for i in range(100))),  # ratio
+        ]
+        for src in sources:
+            self.assertEqual(self.pre(src)[0], "", src.name)
+        self.assertFalse((self.root / ".memory").exists())
+
+    def test_existing_memory_is_kept_current_even_when_not_served(self):
+        os.environ["CLAUDE_PLUGIN_OPTION_MAX_BYTES"] = "2000"
+        src = write(self.root, "mod.py", big_python())
+        self.pre(src)
+        mem = self.root / ".memory/mod.py.md"
+        src.write_text("".join(f"def f{i}(): return {i}\n" for i in range(100)))
+        self.assertEqual(self.pre(src)[0], "")
+        self.assertIn("def f99()", mem.read_text())
+
+    def test_long_notes_do_not_switch_the_memory_off(self):
+        src = write(self.root, "mod.py", big_python())
+        self.pre(src)
+        mem = self.root / ".memory/mod.py.md"
+        mem.write_text(mem.read_text() + "a durable fact\n" * 2000)
+        self.assertIn("a durable fact", self.shown(self.pre(src)[0]))
+
+    def test_utf8_bom_python_uses_the_syntax_tree(self):
+        src = self.root / "bom.py"
+        src.write_bytes(("﻿" + big_python()).encode("utf-8"))
+        shown = self.shown(self.pre(src)[0])
+        self.assertIn("Method: syntax tree (Python ast)", shown)
 
     def test_same_stem_different_ext_do_not_collide(self):
         a = write(self.root, "app.py", big_python())
@@ -289,7 +340,7 @@ class BundleTests(TmpProjectTestCase):
         self.assertIn("* **Initialization**: Created.", log)
 
     def test_reserved_names_never_get_a_memory(self):
-        for name in ("index", "log", "docs/index"):
+        for name in ("index", "log", "docs/index", "INDEX", "docs/Log"):
             src = write(self.root, name, big_python())
             self.assertEqual(self.pre(src)[0], "")
         self.assertFalse((self.root / ".memory").exists())
@@ -298,6 +349,11 @@ class BundleTests(TmpProjectTestCase):
         self.pre(write(self.root, "my dir/a[1].py", big_python()))
         index = (self.root / ".memory/index.md").read_text()
         self.assertIn("* [my dir/a\\[1\\].py](my%20dir/a%5B1%5D.py.md) - ", index)
+
+    def test_quoted_title_is_unescaped_in_the_index(self):
+        self.pre(write(self.root, 'we"ird.py', big_python()))
+        index = (self.root / ".memory/index.md").read_text()
+        self.assertIn('* [we"ird.py](we%22ird.py.md) - Structural outline of we"ird.py', index)
 
 
 class OutlineTests(unittest.TestCase):
@@ -324,6 +380,21 @@ class OutlineTests(unittest.TestCase):
         md = "# Top\n\n```sh\n# not a heading\n```\n\n## Sub\n"
         _, entries = outline.outline(Path("x.md"), md)
         self.assertEqual(entries, ["L1: Top", "L7:   Sub"])
+
+    def test_line_numbers_ignore_non_newline_separators(self):
+        # Form feed, U+2028 and friends are not line breaks for Read.
+        md = "# Top\n" + "a\x0cb\n" * 3 + "x y\n" + "## Sub\n"
+        self.assertEqual(outline.outline(Path("x.md"), md)[1], ["L1: Top", "L6:   Sub"])
+        js = "const s = 'a b';\n\x0c\nfunction f() {\n}\n"
+        self.assertEqual(outline.outline(Path("x.js"), js)[1], ["L3: function f() {"])
+        py = "x = (\x0c\n\x0c\ndef f():\n    pass\n"  # does not parse: regex fallback
+        method, entries = outline.outline(Path("m.py"), py)
+        self.assertIn("declaration scan", method)
+        self.assertEqual(entries, ["L3: def f():"])
+
+    def test_crlf_line_numbers(self):
+        _, entries = outline.outline(Path("x.md"), "# A\r\n\r\n## B\r\n")
+        self.assertEqual(entries, ["L1: A", "L3:   B"])
 
     def test_typescript_scan(self):
         ts = ("export interface Foo {\n  a: number;\n}\n"

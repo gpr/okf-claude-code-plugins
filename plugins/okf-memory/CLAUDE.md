@@ -34,15 +34,24 @@ covers what breaks when you edit the implementation.
   `source_sha256` before returning existing content.
 - Everything from `NOTES_HEADING` down is preserved verbatim on regeneration
   (`notes_section()`). Don't change the heading text without migrating it.
-- Only a full Read creates a memory; Edit/Write/ranged Read refresh an
-  existing one (`create=False`) and print nothing.
+- Only a full Read creates a memory, and only one `servable()` would show
+  (it has outline entries; its generated part, Notes excluded, is at most
+  `MAX_MEMORY_RATIO` of the source). Edit/Write/ranged Read refresh an
+  existing one (`create=False`) and print nothing; an existing memory is
+  refreshed even when no longer servable, so its notes stay current.
+- Outline line numbers must match Read's: split with `outline.split_lines()`
+  (`\n` only), never `str.splitlines()`, which also breaks on form feed and
+  U+2028.
+- `memory_root()` returns None unless `memory_dir` resolves to a
+  subdirectory of the project root; every caller treats None as "inactive".
 - Memory path keeps the source extension (`file.ext.md`) — changing it to
   `file.md` makes same-stem files collide.
 - A memory write (create or regenerate, in `ensure_memory()`) also calls
   `record_in_bundle()`: upsert in the root `index.md`, entry in the root
   `log.md`, under `_BundleLock`. Serving a fresh memory writes nothing.
-- `memory_path()` returns None for sources named `index`/`log`: their
-  memory would be a reserved OKF filename.
+- `memory_path()` returns None for sources named `index`/`log` in any letter
+  case: their memory would be a reserved OKF filename (case-insensitive on
+  macOS/Windows).
 - `PRODUCER` (`okf-memory/<version>`) must follow `version` in
   `plugin.json`.
 - **No network in hooks.** `_tree_sitter()` must check

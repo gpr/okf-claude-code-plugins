@@ -114,9 +114,21 @@ def language(path: Path) -> str:
     return LANGS[ext][0] if ext in LANGS else "text"
 
 
+def split_lines(text: str) -> list[str]:
+    """Lines as Read numbers them: split on `\\n` only, trailing `\\r` dropped.
+
+    Not `str.splitlines()`: it also breaks on form feed, U+2028 and other
+    separators, which shifts every later line number away from the source.
+    """
+    lines = text.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return [ln[:-1] if ln.endswith("\r") else ln for ln in lines]
+
+
 def outline(path: Path, text: str) -> tuple[str, list[str]]:
     """Return (method, entries). `method` names how the outline was built."""
-    lines = text.splitlines()
+    lines = split_lines(text)
     if lines and len(text) / len(lines) > MINIFIED_AVG_LINE:
         return "none (minified or single-line content)", []
     ext = path.suffix.lower().lstrip(".")

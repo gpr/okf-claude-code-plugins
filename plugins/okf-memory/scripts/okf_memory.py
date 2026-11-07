@@ -102,8 +102,15 @@ def project_root(payload: dict) -> Path:
     return Path(root).expanduser().resolve()
 
 
-def memory_root(root: Path) -> Path:
-    return (root / (option("memory_dir", DEFAULT_MEMORY_DIR) or DEFAULT_MEMORY_DIR)).resolve()
+def memory_root(root: Path) -> Path | None:
+    """The memory dir, or None when `memory_dir` does not name a subdirectory of `root`.
+
+    `.`, `..` or a path outside the project would make every source "a memory"
+    or write memories outside the project, so the plugin stays inactive instead.
+    """
+    raw = option("memory_dir", DEFAULT_MEMORY_DIR) or DEFAULT_MEMORY_DIR
+    mem_root = (root / Path(raw).expanduser()).resolve()
+    return mem_root if root in mem_root.parents else None
 
 
 def memory_path(root: Path, source: Path) -> Path | None:
@@ -117,9 +124,12 @@ def memory_path(root: Path, source: Path) -> Path | None:
     except ValueError:
         return None  # outside the project: nowhere to keep its memory
     mem_root = memory_root(root)
+    if mem_root is None:
+        return None
     if source == mem_root or mem_root in source.parents:
         return None  # never take memories of memories
-    if SKIP_DIRS & set(rel.parts) or rel.name in RESERVED_STEMS:
+    # Case-insensitive: on macOS/Windows `INDEX.md` is the bundle's `index.md`.
+    if SKIP_DIRS & set(rel.parts) or rel.name.lower() in RESERVED_STEMS:
         return None
     return mem_root / rel.parent / (rel.name + ".md")
 
@@ -154,7 +164,13 @@ def read_frontmatter(text: str) -> dict:
     for line in text[4:end].splitlines():
         key, sep, value = line.partition(":")
         if sep and not line.startswith(" "):
-            meta[key.strip()] = value.strip().strip('"')
+            value = value.strip()
+            if value.startswith('"'):
+                try:
+                    value = json.loads(value)  # written by _yaml_str
+                except ValueError:
+                    value = value.strip('"')
+            meta[key.strip()] = str(value)
     return meta
 
 
@@ -171,7 +187,7 @@ def _yaml_str(value: str) -> str:
 
 
 def build_memory(rel: str, source: Path, mem: Path, data: bytes, notes: str) -> str:
-    text = data.decode("utf-8", errors="replace")
+    text = data.decode("utf-8-sig", errors="replace")  # a BOM would break ast.parse
     n_lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
     lang = outline_mod.language(source)
     method, entries = outline_mod.outline(source, text)
@@ -314,10 +330,27 @@ def record_in_bundle(mem_root: Path, mem: Path, content: str, created: bool) -> 
         update_log(mem_root, mem, title, created)
 
 
+def servable(content: str, size: int) -> bool:
+    """Whether a memory is worth showing instead of a `size`-byte source.
+
+    It needs an outline to navigate by, and its generated part must be at most
+    MAX_MEMORY_RATIO of the source. The `# Notes` section is not counted, so
+    notes that grow over time never switch the memory off.
+    """
+    if read_frontmatter(content).get("outline_entries", "0") == "0":
+        return False
+    cut = content.find(f"\n{NOTES_HEADING}\n")
+    generated = content if cut < 0 else content[: cut + 1]
+    return len(generated.encode("utf-8")) <= size * MAX_MEMORY_RATIO
+
+
 def ensure_memory(root: Path, source: Path, mem: Path, data: bytes, create: bool) -> str | None:
     """Return up-to-date memory text, (re)writing it if missing or stale.
 
     With `create=False`, a missing memory stays missing and None is returned.
+    A new memory that would not be served (`servable()`) is returned but not
+    written, so the bundle holds only memories that are used. An existing one
+    is always kept current, since its notes may matter.
     A write also records the memory in the bundle's root `index.md`/`log.md`.
     """
     existing = mem.read_text(encoding="utf-8", errors="replace") if mem.is_file() else None
@@ -327,6 +360,8 @@ def ensure_memory(root: Path, source: Path, mem: Path, data: bytes, create: bool
         return existing
     rel = source.relative_to(root).as_posix()
     content = build_memory(rel, source, mem, data, notes_section(existing or ""))
+    if existing is None and not servable(content, len(data)):
+        return content
     write_atomic(mem, content)
     record_in_bundle(memory_root(root), mem, content, created=existing is None)
     return content
@@ -359,12 +394,10 @@ def memory_for(payload: dict) -> str | None:
     if is_binary(source, data):
         return None
     content = ensure_memory(root, source, mem, data, create=True)
-    if not content or read_frontmatter(content).get("outline_entries", "0") == "0":
-        return None  # no structure to navigate by: the full content is the better answer
-    if len(content.encode("utf-8")) > size * MAX_MEMORY_RATIO:
-        return None  # the memory would not save enough to be worth the indirection
+    if not content or not servable(content, size):
+        return None  # no outline, or too little saved: the full content is the better answer
     rel = source.relative_to(root).as_posix()
-    mem_rel = mem.relative_to(root).as_posix() if root in mem.parents else str(mem)
+    mem_rel = mem.relative_to(root).as_posix()
     return (
         f"okf-memory: `{rel}` is {size:,} bytes, over the {limit:,}-byte full-read limit, "
         f"so this result is its memory (`{mem_rel}`), not the file content.\n"
