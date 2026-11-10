@@ -23,8 +23,9 @@ A source at `path/to/file.ext` has its memory at
 `.memory/path/to/file.ext.md`: the source's own path under `.memory/`, plus
 the `.md` every OKF concept needs. The extension stays in the name so
 `app.py` and `app.js` never share a memory. A file named exactly `index` or
-`log` (no extension) gets no memory: `index.md` and `log.md` are reserved
-OKF names at every level.
+`log` (no extension, any letter case) gets no memory: `index.md` and
+`log.md` are reserved OKF names at every level, and on macOS and Windows
+`INDEX.md` is the same file as `index.md`.
 
 The reply Claude sees also tells it to use `Grep` on the original file to
 find what the outline does not show (a string, a call site, a constant),
@@ -71,8 +72,10 @@ bundle. Keep it a dotdir (the default) unless you want that.
 - Binary files (by extension or NUL byte), images, PDFs, notebooks.
 - Files outside the project root, inside `.git`, or inside the memory dir.
 - Files no outline can be built for (unknown language, minified code), and
-  files whose memory would be more than half the size of the source — there
-  the real content is the better answer.
+  files whose memory (without its `# Notes`) would be more than half the
+  size of the source — there the real content is the better answer. No
+  memory is written for them either, so `.memory/` holds only memories that
+  are used.
 
 ### Staleness
 
@@ -119,7 +122,9 @@ so they resolve to the source as OKF §6 reads a relative path.
 Everything above `# Notes` is generated and overwritten on refresh.
 Everything from `# Notes` down is yours — and Claude's: it is told it may
 record durable facts about the file there ("`total()` excludes tax; tax is
-applied in `finalize()`"), and they survive regeneration.
+applied in `finalize()`"), and they survive regeneration. Notes don't count
+toward the half-the-source-size limit, so a memory with long notes is still
+served.
 
 ### Outline quality by language
 
@@ -158,7 +163,7 @@ rest. Re-run the setup to add a language.
 | `userConfig` key | Default | Meaning |
 |---|---|---|
 | `max_bytes` | `20000` | Full reads above this many bytes show the memory instead. `0` disables replacement. |
-| `memory_dir` | `.memory` | Where memories live, relative to the project root. |
+| `memory_dir` | `.memory` | Where memories live, relative to the project root (`~` is expanded). Must be a subdirectory of the project: `.`, `..` or a path outside it turns the plugin off. |
 
 Decide whether `.memory/` is committed. Committing shares the `# Notes`
 sections with the team; the generated part churns on every source change.
