@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""Remove memories whose source file no longer exists. Run it yourself.
+
+    bin/okf-memory-prune [--project DIR] [--memory-dir DIR] [--apply]
+
+Without --apply, only reports what would be removed (a dry run). With it,
+deletes each orphaned memory, drops its entry and any entry that links to a
+missing memory from the bundle-root `index.md`, and logs a **Deletion** in
+`log.md`. Memories with hand-written `# Notes` are flagged first: deleting
+them loses the notes.
+
+The hooks never delete anything; a memory outlives its source until this runs.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "../scripts"))
+
+import okf_memory as om  # noqa: E402
+
+
+def memories(mem_root: Path):
+    """(memory, text, source path relative to the project) for every Source Memory."""
+    for mem in sorted(mem_root.rglob("*.md")):
+        if mem.parent == mem_root and mem.name in ("index.md", "log.md"):
+            continue
+        text = mem.read_text(encoding="utf-8", errors="replace")
+        if om.read_frontmatter(text).get("type") != "Source Memory":
+            continue  # not ours (or a half-written temp file): never touch it
+        rel = mem.relative_to(mem_root).as_posix()[: -len(".md")]
+        yield mem, text, rel
+
+
+def has_notes(text: str) -> bool:
+    notes = om.notes_section(text)
+    return notes != om.NOTES_PLACEHOLDER and notes.strip() != om.NOTES_PLACEHOLDER.strip()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--project", default=".", help="project root (default: cwd)")
+    parser.add_argument("--memory-dir", help="CLAUDE_PLUGIN_OPTION_MEMORY_DIR")
+    parser.add_argument("--apply", action="store_true", help="delete (default: dry run)")
+    args = parser.parse_args()
+
+    root = Path(args.project).expanduser().resolve()
+    if args.memory_dir is not None:
+        os.environ["CLAUDE_PLUGIN_OPTION_MEMORY_DIR"] = args.memory_dir
+    mem_root = om.memory_root(root)
+    if mem_root is None:
+        print("memory_dir must be a subdirectory of the project", file=sys.stderr)
+        return 2
+    if not mem_root.is_dir():
+        print(f"no memories: {mem_root} does not exist")
+        return 0
+
+    orphans = []
+    for mem, text, rel in memories(mem_root):
+        if not (root / rel).is_file():
+            orphans.append((mem, rel, has_notes(text)))
+    orphan_targets = {mem.relative_to(mem_root).as_posix() for mem, _, _ in orphans}
+
+    def dangling(target: str) -> bool:
+        return target in orphan_targets or not (mem_root / target).is_file()
+
+    verb = "removing" if args.apply else "would remove"
+    for mem, rel, notes in orphans:
+        flag = "  [has notes - they will be lost]" if notes else ""
+        print(f"{verb} {mem.relative_to(root).as_posix()} (source {rel} is gone){flag}")
+
+    if not args.apply:
+        stale = [ln for ln in _index_entries(mem_root) if dangling(om.index_target(ln))]
+        if stale:
+            print(f"{verb} {len(stale)} index entr{'y' if len(stale) == 1 else 'ies'}")
+        print("dry run: re-run with --apply to delete" if orphans or stale else "nothing to prune")
+        return 0
+
+    with om._BundleLock(mem_root):
+        for mem, rel, _ in orphans:
+            mem.unlink()
+            _remove_empty_dirs(mem.parent, mem_root)
+            om.add_log_entry(mem_root, f"* **Deletion**: Removed the memory of `{rel}`; "
+                                       "its source file no longer exists.")
+        removed = om.remove_from_index(mem_root, dangling)
+    print(f"removed {len(orphans)} memor{'y' if len(orphans) == 1 else 'ies'}, "
+          f"{len(removed)} index entr{'y' if len(removed) == 1 else 'ies'}")
+    return 0
+
+
+def _index_entries(mem_root: Path) -> list[str]:
+    index = mem_root / "index.md"
+    if not index.is_file():
+        return []
+    lines = index.read_text(encoding="utf-8").splitlines()
+    try:
+        start = lines.index(om.INDEX_HEADING)
+    except ValueError:
+        return []
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("# ")), len(lines))
+    return [ln for ln in lines[start + 1 : end] if ln.startswith("* [")]
+
+
+def _remove_empty_dirs(path: Path, stop: Path) -> None:
+    while path != stop and stop in path.parents:
+        try:
+            path.rmdir()
+        except OSError:
+            return
+        path = path.parent
+
+
+if __name__ == "__main__":
+    sys.exit(main())

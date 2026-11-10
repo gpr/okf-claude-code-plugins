@@ -41,7 +41,8 @@ bundle-root files, so `.memory/` stays a valid OKF v0.2 bundle:
   the memory's `description`; a refresh updates the entry in place. Anything
   else in the file is kept.
 - `.memory/log.md` — newest date first, one entry per change:
-  `**Creation**` for a new memory, `**Update**` for a regeneration. The same
+  `**Creation**` for a new memory, `**Update**` for a regeneration,
+  `**Deletion**` when `bin/okf-memory-prune` removes one. The same
   entry is not repeated under one date, so ten edits of a file in a day log
   one update.
 
@@ -76,6 +77,16 @@ bundle. Keep it a dotdir (the default) unless you want that.
   size of the source — there the real content is the better answer. No
   memory is written for them either, so `.memory/` holds only memories that
   are used.
+
+### Generated files: outline, but no stored memory
+
+Lockfiles (`package-lock.json`, `yarn.lock`, `Cargo.lock`, `poetry.lock`,
+`go.sum`, …), `*.min.*` files, and files under `node_modules`, `.venv`,
+`venv`, `dist`, `build`, `target`, `.next`, `.nuxt`, `coverage` or
+`__pycache__` still get an outline instead of their full content: that
+saves the most tokens. But nothing is written to `.memory/`. Nobody keeps
+notes on a lockfile, and these files change too often to be worth
+indexing. The reply says "generated file: not stored".
 
 ### Staleness
 
@@ -132,7 +143,7 @@ served.
 |---|---|
 | Python | Real syntax tree (stdlib `ast`): imports, constants, classes, methods, functions with signatures, line spans and first docstring line. |
 | Markdown | Heading tree (ignores headings inside code fences). |
-| JSON | Key tree with types and sizes, 3 levels deep. No line numbers. |
+| JSON | Key tree with types and sizes, 3 levels deep. Pretty-printed JSON (one key per line) gets line numbers; minified JSON doesn't. |
 | JS/TS, Go, Rust, Java, Kotlin, Scala, Swift, C#, C/C++, Ruby, PHP, Bash, Lua, … | **With tree-sitter** (optional, see below): real syntax tree — classes, methods, functions, structs, traits, impls, with signatures, line spans and nesting. **Without it:** regex declaration scan, start line only, not a parse tree. |
 | CSS, SQL, YAML, TOML, INI | Regex declaration scan. |
 
@@ -193,3 +204,18 @@ bin/okf-memory-preview path/to/big_file.py [--project DIR] [--max-bytes N]
 Simulates the `PostToolUse` hook after a full read: prints what Claude
 would see and the size saved. Like the real hook, it
 creates or refreshes the memory. Exits 1 when the read would go through.
+
+## Prune
+
+```
+bin/okf-memory-prune [--project DIR] [--memory-dir DIR]     # dry run
+bin/okf-memory-prune --apply
+```
+
+A memory outlives its source: the hooks never delete anything. Run this
+after deleting or renaming files. It lists each memory whose source is gone
+and flags the ones with hand-written `# Notes`, because deleting a memory
+loses its notes. With `--apply` it deletes them, removes their `index.md`
+entries (and any entry that links to a missing memory), and logs each
+deletion. Files under `.memory/` that aren't Source Memories are never
+touched.
