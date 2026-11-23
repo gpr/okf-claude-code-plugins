@@ -3,7 +3,7 @@ type: Template
 title: Environment template
 description: One place the system runs and what differs there.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Environment` concepts — one place the system runs,
@@ -18,7 +18,7 @@ title: <environment name>
 description: <one sentence saying what this environment is for>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Purpose
@@ -42,6 +42,6 @@ retention>
 
 # Traceability
 
-- Hosts: [<component title>](/components/<slug>.md)
-- Installs: [<dependency title>](/dependencies/<slug>.md)
-- Governed by: [<convention title>](/conventions/<slug>.md)
+- Hosts: [<component title>](../components/<slug>.md)
+- Installs: [<dependency title>](../dependencies/<slug>.md)
+- Governed by: [<convention title>](../conventions/<slug>.md)

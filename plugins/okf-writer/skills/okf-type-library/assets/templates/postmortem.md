@@ -3,7 +3,7 @@ type: Template
 title: Postmortem template
 description: What broke, what it cost, what changed as a result.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Postmortem` concepts — what broke, what it cost, and
@@ -17,7 +17,7 @@ title: <the incident, as a short noun phrase>
 description: <one sentence summarizing what happened>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Impact
@@ -40,5 +40,5 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Concerns: [<component or environment title>](/components/<slug>.md)
-- Produced: [<ADR, Playbook, or Risk title>](/adrs/<slug>.md)
+- Concerns: [<component or environment title>](../components/<slug>.md)
+- Produced: [<ADR, Playbook, or Risk title>](../adrs/<slug>.md)

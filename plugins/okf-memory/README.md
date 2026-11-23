@@ -2,7 +2,7 @@
 
 Stops Claude Code from paying for big files in full. When Claude reads a
 whole file over a size limit, what it sees is the file's **memory** instead: a short
-[OKF](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md)
+[OKF](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md)
 concept with a structural outline of the file, every entry carrying its line
 numbers. Claude then reads only the ranges it needs.
 
@@ -34,9 +34,10 @@ then Read only the range around the match.
 ### `.memory/` is an OKF bundle
 
 Every time a memory is created or regenerated, the hook also maintains the
-bundle-root files, so `.memory/` stays a valid OKF v0.2 bundle:
+bundle-root files, so `.memory/` stays a valid OKF v0.3 bundle:
 
-- `.memory/index.md` — created with `okf_version: "0.2"` if missing. Under
+- `.memory/index.md` — created with `okf_version: "0.3"`, a `title` and a
+  `description` (OKF §8.1) if missing; existing frontmatter is kept. Under
   `# Source Memories` it holds one entry per memory, sorted by path, with
   the memory's `description`; a refresh updates the entry in place. Anything
   else in the file is kept.
@@ -90,7 +91,7 @@ indexing. The reply says "generated file: not stored".
 
 ### Staleness
 
-Each memory records `source_sha256`. The hook checks it before serving,
+Each memory records `x-okf-memory-source-sha256`. The hook checks it before serving,
 so an outline with wrong line numbers is never served even if the
 file changed outside Claude (git pull, another editor). The `PostToolUse`
 hook refreshes memories right after Claude edits a file, so the next read is
@@ -106,11 +107,11 @@ description: "Structural outline of src/billing.py (Python, 812 lines)."
 resource: "../../src/billing.py"
 tags: [okf-memory]
 sources: [{ id: source, resource: "../../src/billing.py", title: "src/billing.py" }]
-generated: { by: okf-memory/0.1.0, at: 2026-10-03T20:38:49Z }
-source_sha256: 99f1…
-source_bytes: 31207
-source_lines: 812
-outline_entries: 42
+generated: { by: okf-memory/0.2.0, at: "2026-10-03T20:38:49Z" }
+x-okf-memory-source-sha256: "99f1…"
+x-okf-memory-source-bytes: 31207
+x-okf-memory-source-lines: 812
+x-okf-memory-outline-entries: 42
 ---
 
 # Outline
@@ -127,8 +128,13 @@ Language: Python. Method: syntax tree (Python ast). Line numbers are 1-based.
 <!-- Hand-written. Everything from this heading down survives regeneration. -->
 ```
 
-`resource` and `sources[].resource` are relative to the memory file itself,
-so they resolve to the source as OKF §6 reads a relative path.
+`resource` and `sources[].resource` are relative to the memory file itself
+and percent-encoded (OKF §6), so Claude can follow them to the source. The
+source lives outside the `.memory/` bundle root, so a strict OKF consumer
+treats the value as external and won't read it from disk; that is
+expected. The `x-okf-memory-*` keys are this plugin's extension keys (OKF
+§4.1); memories written by okf-memory 0.1 with the old unprefixed names are
+regenerated on their next full Read.
 
 Everything above `# Notes` is generated and overwritten on refresh.
 Everything from `# Notes` down is yours — and Claude's: it is told it may

@@ -3,7 +3,7 @@ type: Template
 title: Plan Item template
 description: One unit of implementation work and its done-condition.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Plan Item` concepts — one unit of implementation
@@ -17,7 +17,7 @@ title: <the work, stated as an action>
 description: <one sentence saying what is true once this is done>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Goal
@@ -40,7 +40,7 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Satisfies: [<requirement title>](/requirements/<slug>.md)
-- Specified by: [<specification title>](/specifications/<slug>.md)
-- Decided in: [<ADR title>](/adrs/<slug>.md)
-- Verified by: [<test plan title>](/test-plans/<slug>.md)
+- Satisfies: [<requirement title>](../requirements/<slug>.md)
+- Specified by: [<specification title>](../specifications/<slug>.md)
+- Decided in: [<ADR title>](../adrs/<slug>.md)
+- Verified by: [<test plan title>](../test-plans/<slug>.md)

@@ -3,7 +3,7 @@ type: Template
 title: Component template
 description: One unit of the system, its responsibility and boundary.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Component` concepts — one unit of the system, what
@@ -17,7 +17,7 @@ title: <component name>
 description: <one sentence saying what this component is responsible for>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Responsibility
@@ -41,7 +41,7 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Realizes: [<specification title>](/specifications/<slug>.md)
-- Exposes: [<interface title>](/interfaces/<slug>.md)
-- Depends on: [<component title>](/components/<slug>.md)
-- Runs in: [<environment title>](/environments/<slug>.md)
+- Realizes: [<specification title>](../specifications/<slug>.md)
+- Exposes: [<interface title>](../interfaces/<slug>.md)
+- Depends on: [<component title>](../components/<slug>.md)
+- Runs in: [<environment title>](../environments/<slug>.md)

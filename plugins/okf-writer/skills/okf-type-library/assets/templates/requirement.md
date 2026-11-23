@@ -3,7 +3,7 @@ type: Template
 title: Requirement template
 description: One testable statement with a fit criterion.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Requirement` concepts — one atomic statement the
@@ -17,7 +17,7 @@ title: <the requirement, as a short noun phrase>
 description: <one sentence restating the shall-statement>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Statement
@@ -39,7 +39,7 @@ you can't state one, this isn't ready to be a Requirement yet.>
 
 # Traceability
 
-- Specified by: [<specification title>](/specifications/<slug>.md)
-- Delivered by: [<plan item title>](/plan-items/<slug>.md)
-- Verified by: [<test plan title>](/test-plans/<slug>.md)
-- Threatened by: [<risk title>](/risks/<slug>.md)
+- Specified by: [<specification title>](../specifications/<slug>.md)
+- Delivered by: [<plan item title>](../plan-items/<slug>.md)
+- Verified by: [<test plan title>](../test-plans/<slug>.md)
+- Threatened by: [<risk title>](../risks/<slug>.md)

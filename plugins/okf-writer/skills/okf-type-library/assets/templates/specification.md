@@ -3,7 +3,7 @@ type: Template
 title: Specification template
 description: What one capability should do, before it is built.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Specification` concepts — what one capability should
@@ -17,7 +17,9 @@ title: <the capability, as a noun phrase>
 description: <one sentence saying what this specifies and for whom>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+sources:
+  - { id: <source-id>, resource: "<URL or /path this was written from>", title: "<source title>" }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Problem
@@ -44,6 +46,6 @@ subsection per externally visible behaviour. No implementation detail.>
 
 # Traceability
 
-- Requirements: [<requirement title>](/requirements/<slug>.md)
-- Plan: [<plan item title>](/plan-items/<slug>.md)
-- Decisions: [<ADR title>](/adrs/<slug>.md)
+- Requirements: [<requirement title>](../requirements/<slug>.md)
+- Plan: [<plan item title>](../plan-items/<slug>.md)
+- Decisions: [<ADR title>](../adrs/<slug>.md)

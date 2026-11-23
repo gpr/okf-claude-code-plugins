@@ -17,8 +17,8 @@ of knowledge. A minimal bundle looks like:
 
 ```
 spec/
-├── index.md          # bundle root — links to every concept, no frontmatter except okf_version
-├── log.md             # dated changelog, newest entry first
+├── index.md          # bundle root — links to every concept; the only index.md with frontmatter
+├── log.md             # dated changelog, newest entry first, no frontmatter
 ├── adr-0001-database.md   # a concept
 └── templates/
     ├── index.md
@@ -30,14 +30,20 @@ version:
 
 ```markdown
 ---
-okf_version: "0.2"
+okf_version: "0.3"
+title: Product spec
+description: Requirements, ADRs and constraints for the product.
 ---
 
 # Product spec
 ```
 
-These plugins target **OKF v0.2**. Full format:
-[SPEC.md](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md).
+These plugins target **OKF v0.3**. Full format:
+[SPEC.md](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md).
+`okf-core` vendors that spec and the official OKF `okf-generate` and
+`okf-consume` skills from the
+[OKF repository](https://github.com/open-knowledge-format/open-knowledge-format),
+so don't also install its `okf` plugin.
 Further reading:
 [How the Open Knowledge Format can improve data sharing](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) and
 [OKF v0.2 adds trust signals](https://cloud.google.com/blog/products/data-analytics/okf-v0-2-adds-trust-signals).
@@ -79,7 +85,7 @@ outlines, installed by its own `bin/okf-memory-setup`.
 
 | Plugin | What it does | Ships |
 |---|---|---|
-| [`okf-core`](plugins/okf-core) | Shared Open Knowledge Format (OKF) knowledge for OKF plugins. | skill `okf-spec`, agent `okf-search` |
+| [`okf-core`](plugins/okf-core) | Open Knowledge Format (OKF) v0.3 spec reference, the upstream okf-generate and okf-consume skills, and the okf-search agent. | skills `okf-spec`, `okf-generate`, `okf-consume`, agent `okf-search` |
 | [`okf-reader`](plugins/okf-reader) | Loads OKF knowledge bundles into Claude Code sessions, lazily and by declared authority. | `SessionStart` hook, `bin/okf-reader-preview` |
 | [`okf-writer`](plugins/okf-writer) | Authors Open Knowledge Format (OKF) concept documents and keeps templates, indexes, and logs in sync. | skills `okf-concept`, `okf-type-library` |
 | [`okf-memory`](plugins/okf-memory) | Serves an OKF memory (structural outline with line numbers) instead of reading oversized files in full. | `PostToolUse`/`PostToolUseFailure` hooks, `bin/okf-memory-preview`, `bin/okf-memory-setup` |
@@ -111,7 +117,9 @@ precedence and conflict rules.
 
    ```markdown
    ---
-   okf_version: "0.2"
+   okf_version: "0.3"
+   title: Product spec
+   description: Requirements, ADRs and constraints for the product.
    ---
 
    # Product spec
@@ -142,7 +150,7 @@ plugins/<name>/skills|hooks|agents|bin/...  # plugin internals, vary by kind
 ```
 
 ```
-# run okf-reader's test suite (19 cases)
+# run okf-reader's test suite (23 cases)
 python3 -m unittest discover -s plugins/okf-reader/tests
 
 # preview what the okf-reader hook would inject for a project
@@ -150,6 +158,9 @@ python3 plugins/okf-reader/bin/okf-reader-preview .
 
 # run okf-memory's test suite
 python3 -m unittest discover -s plugins/okf-memory/tests
+
+# check okf-core's vendored upstream files are unmodified
+python3 -m unittest discover -s plugins/okf-core/tests
 
 # sanity-check both manifests still parse
 jq . .claude-plugin/marketplace.json plugins/*/.claude-plugin/plugin.json

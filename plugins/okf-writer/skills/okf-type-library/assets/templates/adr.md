@@ -3,7 +3,7 @@ type: Template
 title: ADR template
 description: One architectural decision, its forces, and its cost.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: ADR` concepts — one architectural decision, the
@@ -17,7 +17,9 @@ title: <the decision, stated as an action>
 description: <one sentence recording what was decided and why>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+sources:
+  - { id: <source-id>, resource: "<URL or /path this was written from>", title: "<source title>" }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Context
@@ -41,6 +43,6 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Decides for: [<specification title>](/specifications/<slug>.md)
-- Selects: [<technology title>](/technologies/<slug>.md)
-- Supersedes: [<earlier ADR title>](/adrs/<slug>.md)
+- Decides for: [<specification title>](../specifications/<slug>.md)
+- Selects: [<technology title>](../technologies/<slug>.md)
+- Supersedes: [<earlier ADR title>](../adrs/<slug>.md)

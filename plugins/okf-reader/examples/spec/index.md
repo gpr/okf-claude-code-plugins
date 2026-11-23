@@ -1,5 +1,7 @@
 ---
-okf_version: "0.2"
+okf_version: "0.3"
+title: Example product spec
+description: Fixture showing okf-reader auto-discovery.
 ---
 
 # Example product spec

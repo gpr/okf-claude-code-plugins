@@ -3,7 +3,7 @@ type: Template
 title: Convention template
 description: A rule a newcomer would otherwise get wrong.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Convention` concepts — a rule a newcomer would
@@ -17,7 +17,7 @@ title: <the rule, as a short imperative>
 description: <one sentence saying what this rule is and why it matters>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Rule
@@ -49,4 +49,4 @@ convention only">
 
 # Traceability
 
-- Constrains: [<component, interface, or plan item title>](/components/<slug>.md)
+- Constrains: [<component, interface, or plan item title>](../components/<slug>.md)

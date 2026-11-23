@@ -1,7 +1,7 @@
 {
   "name": "okf-memory",
   "description": "Serves an OKF memory (structural outline with line numbers) instead of reading oversized files in full.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "OKF Memory",
   "author": {
     "name": "Gregory Romé",

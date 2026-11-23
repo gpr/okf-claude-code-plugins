@@ -25,7 +25,7 @@ def write(root: Path, rel: str, content: str) -> Path:
     return path
 
 
-MARKED = '---\nokf_version: "0.2"\n---\n\n# {title}\n'
+MARKED = '---\nokf_version: "0.3"\n---\n\n# {title}\n'
 
 
 class TmpProjectTestCase(unittest.TestCase):
@@ -47,6 +47,28 @@ class DiscoveryTests(TmpProjectTestCase):
         self.assertEqual([b["id"] for b in bundles], ["spec"])
         self.assertEqual(bundles[0]["description"], "Spec")
         self.assertEqual(bundles[0]["status"], "normative")
+
+    def test_description_prefers_frontmatter_description_then_title_then_heading(self):
+        write(self.root, "a/index.md",
+              '---\nokf_version: "0.3"\ntitle: A title\ndescription: Use it for A.\n---\n\n# A heading\n')
+        write(self.root, "b/index.md", '---\nokf_version: "0.3"\ntitle: "B title"\n---\n\n# B heading\n')
+        write(self.root, "c/index.md", MARKED.format(title="C heading"))
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": "Use it for A.", "b": "B title", "c": "C heading"})
+
+    def test_null_or_empty_okf_version_is_not_a_bundle(self):
+        write(self.root, "a/index.md", "---\nokf_version:\n---\n\n# A\n")
+        write(self.root, "b/index.md", "---\nokf_version: null\n---\n\n# B\n")
+        write(self.root, "c/index.md", '---\nokf_version: ""\n---\n\n# C\n')
+        self.assertEqual(okf_context.discover_bundles(self.root), [])
+
+    def test_nested_okf_version_key_does_not_mark_a_bundle(self):
+        write(self.root, "a/index.md", "---\nx-acme-meta:\n  okf_version: 1\n---\n\n# A\n")
+        self.assertEqual(okf_context.discover_bundles(self.root), [])
+
+    def test_utf8_bom_is_tolerated(self):
+        write(self.root, "spec/index.md", "\ufeff" + MARKED.format(title="Spec"))
+        self.assertEqual([b["id"] for b in okf_context.discover_bundles(self.root)], ["spec"])
 
     def test_nested_index_inside_bundle_is_not_a_separate_bundle(self):
         write(self.root, "spec/index.md", MARKED.format(title="Spec"))

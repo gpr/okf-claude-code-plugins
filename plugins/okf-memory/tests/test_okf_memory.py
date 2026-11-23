@@ -17,6 +17,7 @@ import unittest
 import unittest.mock
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from urllib.parse import unquote
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
@@ -285,12 +286,45 @@ class BundleTests(TmpProjectTestCase):
         self.assertEqual((mem.parent / meta["resource"]).resolve(), src)
         self.assertIn('resource: "../../../pkg/sub/mod.py"', meta["sources"])
         self.assertTrue(meta["generated"].startswith("{ by: okf-memory/"))
+        self.assertRegex(meta["generated"], r'at: "\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ" }$')
+
+    def test_resource_is_percent_encoded(self):
+        src = write(self.root, "my dir/a[1].py", big_python())
+        self.pre(src)
+        mem = self.root / ".memory/my dir/a[1].py.md"
+        meta = okf_memory.read_frontmatter(mem.read_text())
+        self.assertEqual(meta["resource"], "../../my%20dir/a%5B1%5D.py")
+        self.assertEqual((mem.parent / unquote(meta["resource"])).resolve(), src)
+
+    def test_extension_keys_use_the_x_prefix(self):
+        src = write(self.root, "mod.py", big_python())
+        self.pre(src)
+        text = (self.root / ".memory/mod.py.md").read_text()
+        meta = okf_memory.read_frontmatter(text)
+        self.assertEqual(meta["x-okf-memory-source-sha256"], okf_memory.sha256(src.read_bytes()))
+        self.assertIn('x-okf-memory-source-sha256: "', text)
+        for key in ("source_sha256", "source_bytes", "source_lines", "outline_entries"):
+            self.assertNotIn(f"\n{key}:", text)
+
+    def test_memory_with_pre_x_prefix_keys_is_regenerated(self):
+        src = write(self.root, "mod.py", big_python())
+        self.pre(src)
+        mem = self.root / ".memory/mod.py.md"
+        old = mem.read_text().replace("x-okf-memory-source-sha256", "source_sha256")
+        mem.write_text(old.replace(okf_memory.NOTES_PLACEHOLDER, "# Notes\n\nkeep me\n"))
+        self.pre(src)
+        text = mem.read_text()
+        self.assertIn("x-okf-memory-source-sha256:", text)
+        self.assertNotIn("\nsource_sha256:", text)
+        self.assertIn("keep me", text)
 
     def test_creation_writes_root_index_and_log(self):
         self.pre(write(self.root, "pkg/mod.py", big_python()))
         self.pre(write(self.root, "app.py", big_python()))
         index = (self.root / ".memory/index.md").read_text()
-        self.assertTrue(index.startswith('---\nokf_version: "0.2"\n---\n\n# Source Memories\n'))
+        self.assertTrue(index.startswith(
+            '---\nokf_version: "0.3"\ntitle: Source Memories\n'
+            f"description: {okf_memory.INDEX_DESCRIPTION}\n---\n\n# Source Memories\n"))
         n = big_python().count("\n")
         entries = [ln for ln in index.splitlines() if ln.startswith("* [")]
         self.assertEqual(entries, [

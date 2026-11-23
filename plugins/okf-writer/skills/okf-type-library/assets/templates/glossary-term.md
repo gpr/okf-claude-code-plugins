@@ -3,7 +3,7 @@ type: Template
 title: Glossary Term template
 description: One term this project uses in a specific way.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Glossary Term` concepts — one term this project uses
@@ -18,7 +18,7 @@ title: <the term>
 description: <one sentence definition>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Definition
@@ -38,4 +38,4 @@ definition>
 
 # Related terms
 
-- [<related term>](/glossary-terms/<slug>.md)
+- [<related term>](../glossary-terms/<slug>.md)
