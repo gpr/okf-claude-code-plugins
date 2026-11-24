@@ -77,6 +77,13 @@ class SpecIndexTest(unittest.TestCase):
                     f"line {start} of SPEC.md is {heading!r}, not {label}; update the index in okf-spec/SKILL.md",
                 )
                 self.assertLessEqual(end, len(spec))
+        # Each range ends where the next one starts; the last ends at EOF.
+        bounds = [(int(m.group(1)), int(m.group(2)), m.group(3)) for m in rows]
+        for (_, end, label), (next_start, _, _) in zip(bounds, bounds[1:]):
+            with self.subTest(section=label, check="end"):
+                self.assertEqual(end + 1, next_start,
+                                 f"{label} ends at {end} but the next section starts at {next_start}")
+        self.assertEqual(bounds[-1][1], len(spec), "the last indexed section must end at the last line of SPEC.md")
 
 
 if __name__ == "__main__":

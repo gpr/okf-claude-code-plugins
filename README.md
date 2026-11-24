@@ -150,7 +150,7 @@ plugins/<name>/skills|hooks|agents|bin/...  # plugin internals, vary by kind
 ```
 
 ```
-# run okf-reader's test suite (23 cases)
+# run okf-reader's test suite (26 cases)
 python3 -m unittest discover -s plugins/okf-reader/tests
 
 # preview what the okf-reader hook would inject for a project

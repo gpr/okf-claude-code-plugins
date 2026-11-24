@@ -66,6 +66,23 @@ class DiscoveryTests(TmpProjectTestCase):
         write(self.root, "a/index.md", "---\nx-acme-meta:\n  okf_version: 1\n---\n\n# A\n")
         self.assertEqual(okf_context.discover_bundles(self.root), [])
 
+    def test_comment_only_okf_version_is_null(self):
+        write(self.root, "a/index.md", "---\nokf_version: # TBD\n---\n\n# A\n")
+        self.assertEqual(okf_context.discover_bundles(self.root), [])
+
+    def test_block_scalar_and_comment_only_values_fall_back(self):
+        write(self.root, "a/index.md",
+              '---\nokf_version: "0.3"\ntitle: A title\ndescription: >-\n  Folded text.\n---\n\n# A\n')
+        write(self.root, "b/index.md", '---\nokf_version: "0.3"\ndescription: # todo\n---\n\n# B heading\n')
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": "A title", "b": "B heading"})
+
+    def test_quoted_values_keep_escaped_quotes(self):
+        write(self.root, "a/index.md", '---\nokf_version: "0.3"\ndescription: "Use the \\"orders\\" spec"\n---\n')
+        write(self.root, "b/index.md", "---\nokf_version: '0.3'\ntitle: 'Bob''s notes'\n---\n")
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": 'Use the "orders" spec', "b": "Bob's notes"})
+
     def test_utf8_bom_is_tolerated(self):
         write(self.root, "spec/index.md", "\ufeff" + MARKED.format(title="Spec"))
         self.assertEqual([b["id"] for b in okf_context.discover_bundles(self.root)], ["spec"])

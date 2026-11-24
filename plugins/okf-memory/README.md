@@ -37,7 +37,10 @@ Every time a memory is created or regenerated, the hook also maintains the
 bundle-root files, so `.memory/` stays a valid OKF v0.3 bundle:
 
 - `.memory/index.md` — created with `okf_version: "0.3"`, a `title` and a
-  `description` (OKF §8.1) if missing; existing frontmatter is kept. Under
+  `description` (OKF §8.1) if missing. An existing index keeps its
+  frontmatter as it is, declared version included (§8.1 requires keeping
+  it): a `.memory/` started by okf-memory 0.1 still says `"0.2"` until you
+  change it to `"0.3"` and add `title`/`description` by hand. Under
   `# Source Memories` it holds one entry per memory, sorted by path, with
   the memory's `description`; a refresh updates the entry in place. Anything
   else in the file is kept.
@@ -134,7 +137,8 @@ source lives outside the `.memory/` bundle root, so a strict OKF consumer
 treats the value as external and won't read it from disk; that is
 expected. The `x-okf-memory-*` keys are this plugin's extension keys (OKF
 §4.1); memories written by okf-memory 0.1 with the old unprefixed names are
-regenerated on their next full Read.
+regenerated the next time the hook touches their source (a Read, Edit or
+Write).
 
 Everything above `# Notes` is generated and overwritten on refresh.
 Everything from `# Notes` down is yours — and Claude's: it is told it may

@@ -19,7 +19,7 @@ this file covers what breaks when you edit the implementation.
   standalone fixture demonstrating the `okf_version` marker (mirrors the
   inline example in `README.md`'s Auto-discovery section but isn't itself
   linked from it)
-- `tests/test_okf_context.py` — stdlib `unittest`, 23 cases
+- `tests/test_okf_context.py` — stdlib `unittest`, 26 cases
 
 ## Invariants in `scripts/okf_context.py`
 

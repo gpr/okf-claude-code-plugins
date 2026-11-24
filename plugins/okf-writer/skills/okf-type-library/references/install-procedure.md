@@ -141,8 +141,9 @@ Bundle root only.
   text matches its fence `type:` exactly.
 - No written file has a `verified:`, `attester:`, or `executor:` key —
   check keys at line start (`^\s*(verified|attester|executor):`), not
-  bare words: `attested-computation.md`'s prose names all three to
-  forbid them.
+  bare words: `attested-computation.md`'s prose names all three — it
+  forbids `verified` and allows `executor`/`attester` only once their
+  files exist — and none of them may be a key in the installed file.
 - List every file written, and every type skipped and why.
 
 ## Single-type mode (invoked by `okf-concept`)

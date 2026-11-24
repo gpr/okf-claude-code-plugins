@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -83,12 +84,36 @@ NULLS = {"", "~", "null", "Null", "NULL"}
 
 
 def _scalar(value: str) -> str:
-    """Unquote a one-line YAML scalar; drop a trailing comment if unquoted."""
+    """Read a one-line YAML scalar as a string.
+
+    Double-quoted values honour backslash escapes, single-quoted ones `''`.
+    Unquoted values lose a trailing ` #` comment. A value that is only a
+    comment (YAML null) or a block-scalar indicator (`|`, `>-`, ...) whose
+    text sits on later lines returns "", so callers fall back.
+    """
     value = value.strip()
-    if value[:1] in ('"', "'"):
-        quote = value[0]
-        end = value.find(quote, 1)
-        return value[1:end] if end > 0 else value[1:]
+    if value.startswith('"'):
+        i = 1
+        while i < len(value) and value[i] != '"':
+            i += 2 if value[i] == "\\" else 1
+        try:
+            return json.loads(value[: i + 1])
+        except ValueError:
+            return value[1:i]
+    if value.startswith("'"):
+        out, i = [], 1
+        while i < len(value):
+            if value[i] == "'":
+                if value[i + 1 : i + 2] == "'":
+                    out.append("'")
+                    i += 2
+                    continue
+                break
+            out.append(value[i])
+            i += 1
+        return "".join(out)
+    if value.startswith("#") or re.fullmatch(r"[|>][-+0-9]*", value):
+        return ""
     return value.split(" #", 1)[0].strip()
 
 
