@@ -2,7 +2,10 @@
 
 The full form of `SKILL.md`'s 11-step outline; step numbers here match
 it. Read `templates.md` before step 3 or step 8; read `okf-essentials.md`
-if `okf-spec` isn't installed.
+for the OKF v0.3 format rules (with `okf-core` installed, its
+`okf-generate` skill is the format authority — see that file).
+Changing, retiring, or moving an existing concept is a separate path:
+"Updating, retiring, moving" below.
 
 Steps 1–6 read and decide; they write nothing. Every write happens after
 the single confirm at step 6, so a "no" there leaves the bundle untouched.
@@ -47,8 +50,12 @@ the single confirm at step 6, so a "no" there leaves the bundle untouched.
      `type:` inside each one's skeleton fence (see `templates.md`).
    - `templates/` absent entirely — the registry is empty.
 2. Also collect types already in use: the `type:` frontmatter values of
-   concepts under `<root>`, **excluding `<root>/templates/`**. A bundle
-   can predate this skill and have types with no template.
+   concepts under `<root>`, **excluding `<root>/templates/`**. Only
+   concepts count: skip `index.md` and `log.md` (the root `index.md` has
+   frontmatter but is never a concept), `.md` files with no frontmatter or
+   no `type` (`README.md`, `AGENTS.md`), and paths with a part starting
+   with `.`. A bundle can predate this skill and have types with no
+   template.
 3. Known types = union of 1 and 2, each stored as
    `{canonical string, normalized key, has template?}` (normalization in
    `templates.md`).
@@ -135,8 +142,9 @@ title before writing; `<dir>/index.md` and `<dir>/log.md` are never
 concept documents, and steps 9–10 would otherwise treat the file as the
 directory's index or the bundle's log instead of a concept. A collision
 with any other existing file stops the run and asks; never overwrite. If
-the existing file carries a `verified` entry, refuse outright — this is
-a creation skill, not an editor.
+the existing file carries a `verified` entry, refuse outright — this
+path creates; editing an existing concept is "Updating, retiring,
+moving" below, and only on an explicit request.
 
 ## Step 6 — Single confirm point
 
@@ -150,7 +158,8 @@ existing template, catalog install, or a template to be derived.
 | Slug mechanics, index/log formatting, insertion position | Which bundle, when step 1 leaves more than one candidate (including the trusted bundle as sole candidate) |
 | Which frontmatter keys to include | Existing-vs-new on an acronym/containment hit |
 | Which template headings to keep or drop | Target directory when no precedent exists — shown at this confirm, marked *no precedent* |
-| The date/timestamp values | Overwriting or editing an existing file, or a filename that would collide with a reserved name |
+| The `generated` timestamp | Overwriting or editing an existing file, or a filename that would collide with a reserved name |
+| | A `stale_after` date — only from a review cycle the user or a source states; never guessed |
 
 ## Step 7 — Write the concept
 
@@ -166,13 +175,35 @@ from the installed file.
 new concept's frontmatter; the headings after the fence become the body.
 
 Frontmatter written: `type` (canonical spelling), `title`, `description`,
-`status: draft`, `generated: { by: claude-code/<running model id>,
-at: <RFC 3339 UTC with Z> }`. Add `tags` if the bundle uses tags;
-`resource` if the concept names a real asset URI; `sources` if the
-content came from a citable artifact.
+`status: draft`, `generated: { by: "claude-code/<running model id>",
+at: "<now, YYYY-MM-DDTHH:MM:SSZ>" }` — both values quoted. Add `tags` (a
+YAML list) if the bundle uses tags; `resource` if the concept names a real
+asset URI.
 
-Never written: `verified`, `attester`, `executor.receipt`. Omitted unless
-the user supplies a value: `stale_after`, `usage_window`.
+Write only what a source supports — the user's request, files you read,
+documentation you were given. When the content came from a citable
+artifact, record it in `sources`:
+
+- each entry has a stable `id` and the required `resource` (a URL, a
+  `/`-rooted path in the bundle, or a scope descriptor), plus a `title`;
+- list the concept's own `resource` as a source when the content came
+  from it;
+- `author` (an actor such as `"team:payments"`), `usage_count` (with a
+  `usage_window`), and `last_modified` only with real values;
+- cite a specific claim with a footnote whose label is the source's `id`
+  — `[^adr-0007]` defined as `[^adr-0007]: ADR 0007` — never `[^1]`.
+
+Tell the user, at step 11, which facts you could not source; omit them
+rather than invent them.
+
+Never written on this path: `verified` (content written in this run is
+never verified by it — see `okf-essentials.md`'s trust fields). Omitted
+unless the user supplies a value: `usage_window`, and `stale_after`,
+which needs a known review or refresh cycle — never guess a date. Write
+`executor` / `attester` only as the Attested Computation section allows.
+All path fields (`resource`, `sources[].resource`, `computation`,
+`executor.resource`, `attester.resource`, `superseded_by`) that point into
+the bundle start with `/`.
 
 `status: draft` is written explicitly rather than relying on the OKF
 default of `stable` — agent-authored, human-unconfirmed content is a
@@ -188,6 +219,12 @@ Placeholders in a skeleton are `<lowercase hint in angle brackets>`.
 Every one is resolved or its line deleted before the file is written. A
 heading with nothing to say under it is deleted, not left empty. Step 11
 greps the written file for unresolved `<…>`.
+
+A skeleton's link placeholders (e.g. a `# Traceability` bullet
+`[<adr title>](../adrs/<slug>.md)`) assume the concept sits one level
+below the bundle root. Recompute each path relative to where *this*
+concept is written and where its target actually is, and delete a bullet
+whose target concept doesn't exist.
 
 ## Step 8 — New template only: derive `templates/<slug>.md` after the concept
 
@@ -223,79 +260,134 @@ Concept's own directory:
   frontmatter.
 - **Missing** — create it. H1 is the directory name in Title Case (bundle
   root: the bundle's name). No frontmatter — except a bundle-root
-  `index.md` being created from nothing, which gets `okf_version: "0.2"`.
+  `index.md` being created from nothing, which gets `okf_version: "0.3"`,
+  a `title` (the bundle's name), a one-sentence `description` of the
+  bundle's scope and when to use it, and `license` only when the user
+  gave one (see `okf-essentials.md`). When editing an existing root
+  `index.md`, keep its frontmatter byte for byte; never add frontmatter to
+  a subdirectory `index.md`.
 - **New directory** — add `* [<Dir Title>](<dir>/) - <one line>` to the
   parent's `index.md`, creating that parent index the same way, recursing
   to the bundle root.
 
-Link form: `index.md` entries are **relative to that index's directory**
-(a bare filename for a sibling). Bundle-root-relative `/`-paths are used
-in concept bodies and in `log.md`.
+Link form: every body link — `index.md` entries, concept bodies, and
+`log.md` bullets — is **relative to the file that contains it** (a bare
+filename for a sibling, `../adrs/choose-duckdb.md` across directories).
+That form resolves the same under OKF and on GitHub when the bundle is a
+subdirectory of a repository; a `/`-rooted link is valid OKF but breaks
+on GitHub there. Only frontmatter path fields use `/`.
 
 ## Step 10 — `log.md` at the bundle root
 
 1. Read `<root>/log.md`; create with H1 `# Directory Update Log` if
-   absent.
+   absent. `log.md` never has frontmatter.
 2. Today's `## YYYY-MM-DD` heading: if present, append bullets at the end
    of its block; if absent, insert it immediately after the H1, above all
    existing date headings (newest first). No blank line between the
    heading and its first bullet.
-3. Bullets, bundle-root-relative links:
-   - `* **Creation**: Added the [<title>](/<path>.md) <type> concept.`
+3. Bullets, links relative to the bundle root (where `log.md` sits):
+   - `* **Creation**: Added the [<title>](<path>.md) <type> concept.`
    - plus, when a template was derived:
-     `* **Creation**: Derived the [<Type> template](/templates/<slug>.md) from it.`
+     `* **Creation**: Derived the [<Type> template](templates/<slug>.md) from it.`
    - a catalog install (step 7) has already logged its own bullet.
 4. Bundle-root `log.md` only — not a directory-local `log.md`, even if
    the target directory maintains one. OKF permits a `log.md` at any
-   level and `bundle-structure.md` says to append to a directory-local
-   one when present; this skill deliberately narrows that to the
-   bundle root, as one predictable place to check for the history of
+   level, recording changes in its own scope (SPEC §9); this skill
+   deliberately narrows that to the bundle root, as one predictable place to check for the history of
    every concept this skill writes. This is house policy for this
    skill, not an OKF requirement — a bundle that relies on a
    directory-local log for that directory's history won't see this
    skill's entries there.
 
-## Step 11 — Self-check and report
+## Step 11 — Self-check, validate, and report
 
-- List every file written or edited.
-- Grep each written concept for unresolved `<…>` placeholder text (the
-  one exception: the Attested Computation TODO line, see below). A
+Self-check:
+
+- Grep each written concept for unresolved `<…>` placeholder text. A
   derived template keeps its placeholders inside its fence and body —
   only its own frontmatter must be placeholder-free.
 - Every new `.md` outside `index.md`/`log.md` has `type` in its
-  frontmatter.
+  frontmatter, and `generated.at` is a quoted date-time.
+- No subdirectory `index.md` and no `log.md` has frontmatter; a root
+  `index.md` this run created has `okf_version: "0.3"`, `title`, and
+  `description`.
+- Every footnote label equals a `sources[].id`; every in-bundle path
+  field starts with `/`.
 - A derived or installed template has an entry in `templates/index.md`.
-- No written file has a `verified:` or `attester:` key, or a `receipt:`
-  under `executor:`.
+- No written concept has a `verified:` key (this path never writes one),
+  and no `executor`/`attester` points at a file that doesn't exist.
+
+Validate: if the `okf-generate` skill (from `okf-core`) is available,
+follow its "Validate" step on the bundle root — it ships a validator
+script that needs PyYAML. Fix errors; fix warnings or say why you kept
+them (a template's Traceability bullets pointing at concepts that don't
+exist yet are expected). If it isn't available, the self-check above is
+the validation.
+
+Report: every file written or edited; concepts written as `draft`;
+concepts that now need a new verification (their meaning changed after a
+`verified` entry); facts you could not source; the validation result.
 
 ## `type: Attested Computation`
 
-Draft, do not refuse. `okf-spec`'s house rules explicitly permit an agent
-to propose `runtime`, `parameters`, `computation`, and `executor` on a
-brand-new draft with no `verified` entry, precisely so this case works.
+An Attested Computation holds a *sanctioned* computation (OKF §10). This
+skill never writes or edits that computation — not even as a draft —
+because a consumer would then attest a query an agent wrote.
 
-1. Write `status: draft`. Never write `verified`, `attester`, or
-   `executor.receipt`.
-2. `runtime` is required — ask for it if the request doesn't supply it.
-3. The skill does not invent the computation. Either the user supplies
-   the SQL/code (paste it verbatim, don't rewrite it), or the
-   `# Computation` section is written as an explicit
-   `TODO: paste the sanctioned computation — an agent must not author this.`
-   This is the one permitted exception to step 7's
-   no-unresolved-placeholders rule, and step 11's self-check whitelists it.
-4. The log entry notes the computation is pending human authorship.
-5. A derived `templates/attested-computation.md` carries a placeholder
-   computation only — never a real one, and never an `attester` key. In
-   practice step 4 installs the catalog's template instead, since
-   `okf-type-library` catalogs this type.
-6. If the target file already exists with a `verified` entry, stop
-   (already covered by step 5's general refusal). This is also why this
-   skill needs no separate rule for okf-spec's extended restriction —
-   once an Attested Computation carries `verified`, changing `runtime`,
-   the `computation` path, or `executor.resource` requires the same
-   human confirmation as `verified` itself. This skill only ever
-   creates new files; step 5's blanket refusal to touch any file with a
-   `verified` entry already makes that restriction unreachable here.
+1. **Ask for the sanctioned source** before step 6: an approved SQL file,
+   a dbt model, or a query from its owner. Copy it verbatim into exactly
+   one fenced block under `# Computation`, or, for a long or generated
+   one, set `computation: "/<path to the file>"` and put no fenced block
+   there. Cite the source in `sources` and with a footnote.
+2. **No sanctioned source** — write no Attested Computation. Describe the
+   value in a concept of its own type (e.g. `Metric`) without a
+   computation, and report the gap at step 11. If the user explicitly
+   wants an unreviewed query kept, store it as `type: Reference` with
+   `status: draft`, and never link it as a computation.
+3. `runtime` is required for the type — ask for it if the request doesn't
+   supply it. `parameters` entries are `{ name, type, required }`: `name`
+   and `type` required, `required` defaults to `false`; common types are
+   `string`, `integer`, `number`, `boolean`, `date`, `timestamp`.
+4. `executor` (`resource`, plus `receipt`: the fields a run returns, e.g.
+   `[job_id, executed_sql, result]`) and `attester` (`resource`:
+   deterministic code returning `{ ok, reason }`) are written only when
+   the files they point at exist, with `/`-rooted paths. Otherwise omit
+   them and state in the body that the computation cannot be attested
+   yet.
+5. Write `status: draft`, never `verified`. A derived
+   `templates/attested-computation.md` carries a placeholder computation
+   only. In practice step 4 installs the catalog's template instead,
+   since `okf-type-library` catalogs this type.
+
+## Updating, retiring, moving
+
+Only on an explicit request to change, retire, rename, or move an
+existing concept. Show the planned change at a single confirm, as in step
+6, before writing.
+
+- **Update.** Change only what the request and its sources support; keep
+  every other line as it is, including unknown keys, human-written text,
+  and every `verified` entry. Set a new `generated` only for a change in
+  meaning; a fix to format, whitespace, or links keeps it. If the concept
+  had a `verified` entry and its meaning changed, tell the user it now
+  reads as unverified until someone re-verifies it.
+- **Record a verification** only when a person confirmed the content,
+  asked for it to be recorded, and stated their id:
+  append `{ by: "human:<id>", at: "<now>" }` to `verified`. Never infer the
+  id from git config or a login name.
+- **Retire.** Keep the file with its definition and `verified` history;
+  set `status: deprecated`; set `superseded_by: "/<path>.md"` when a
+  replacement exists; state the reason in the body. Log a
+  `**Deprecation**` bullet.
+- **Move or rename.** Write the concept at the new path keeping its
+  `generated` and `verified` values (a move doesn't change meaning). Leave
+  a short concept at the old path with the same `type`, `status:
+  deprecated`, `superseded_by` set to the new path, and one line linking
+  to it. Update both directories' `index.md` entries and log the move.
+
+Migrating a whole bundle from OKF v0.1 or v0.2 is `okf-generate`'s job
+(its migration reference); hand off to it if it is installed, otherwise
+tell the user what would change.
 
 ## Worked example: existing type
 
@@ -348,7 +440,7 @@ demo/
 # Directory Update Log
 
 ## 2026-08-09
-* **Creation**: Added the [Rotate on-call pager](/playbooks/rotate-on-call-pager.md) Playbook concept.
+* **Creation**: Added the [Rotate on-call pager](playbooks/rotate-on-call-pager.md) Playbook concept.
 ```
 
 ## Worked example: new type, derived template
@@ -386,7 +478,7 @@ title: Weekly active users
 description: Distinct users with at least one session in a trailing seven-day window.
 tags: [product, engagement]
 status: draft
-generated: { by: claude-code/claude-opus-5, at: 2026-08-09T10:15:00Z }
+generated: { by: "claude-code/claude-opus-5", at: "2026-08-09T10:15:00Z" }
 ---
 
 # Definition
@@ -420,9 +512,9 @@ See `templates.md` for the derived `templates/metric.md` this produces.
 # Directory Update Log
 
 ## 2026-08-09
-* **Creation**: Added the [Rotate on-call pager](/playbooks/rotate-on-call-pager.md) Playbook concept.
-* **Creation**: Added the [Weekly active users](/metrics/weekly-active-users.md) Metric concept.
-* **Creation**: Derived the [Metric template](/templates/metric.md) from it.
+* **Creation**: Added the [Rotate on-call pager](playbooks/rotate-on-call-pager.md) Playbook concept.
+* **Creation**: Added the [Weekly active users](metrics/weekly-active-users.md) Metric concept.
+* **Creation**: Derived the [Metric template](templates/metric.md) from it.
 ```
 
 ## Worked example: catalogued type

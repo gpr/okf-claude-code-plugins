@@ -10,12 +10,12 @@ it assumes, and how to debug it when the pieces don't line up.
 ## 1. What the plugins do, and what they don't
 
 - `okf-reader`'s `SessionStart` hook injects bundle **locations** — never
-  content — at startup, `/clear`, or `/compact`. Roughly 214 tokens for a
+  content — at startup, `/clear`, or `/compact`. Roughly 280 tokens for a
   one-bundle project, exactly zero for a project with no bundle.
 - A directory becomes a bundle the moment its `index.md` declares
   `okf_version` in YAML frontmatter. That single key is the entire discovery
   contract.
-- The skills (`okf-spec` from `okf-core`; `okf-concept` and
+- The skills (`okf-spec`, `okf-generate`, `okf-consume` from `okf-core`; `okf-concept` and
   `okf-type-library` from `okf-writer`) are **triggered by natural language,
   not slash commands** — none of these plugins ship a `commands/` directory.
   You ask for what you want ("add an ADR for X") and the matching skill
@@ -40,6 +40,7 @@ there, on demand.
 
 A link starting with `/` inside the bundle is relative to `spec/`, not the
 filesystem: `/decisions/0001-duckdb.md` means `spec/decisions/0001-duckdb.md`.
+Any other link resolves from the directory of the file that contains it.
 
 To find which concepts apply to a question, use the `okf-search` agent.
 
@@ -88,7 +89,7 @@ the block the first time it's inconvenient.
 
 ```
 spec/
-├── index.md            # bundle root — okf_version: "0.2", links to everything
+├── index.md            # bundle root — okf_version: "0.3", title, description; links to everything
 ├── log.md               # dated changelog, newest first
 ├── conventions/         # binding project rules — type: Convention
 ├── specifications/      # type: Specification — the unit spec-first gates on
@@ -153,7 +154,9 @@ refuse to write into a `standards` bundle without asking first.
 
    ```markdown
    ---
-   okf_version: "0.2"
+   okf_version: "0.3"
+   title: Product spec
+   description: Specifications, decisions, conventions and plans for the product; consult before changing code.
    ---
 
    # Product spec

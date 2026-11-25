@@ -1,7 +1,7 @@
 # OKF Writer
 
-Authors [Open Knowledge Format (OKF)](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md)
-concept documents.
+Authors [Open Knowledge Format (OKF)](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md)
+v0.3 concept documents.
 
 Ships two skills, `okf-concept` and `okf-type-library`.
 
@@ -22,6 +22,11 @@ why we chose DuckDB" or "add a playbook for rotating the on-call pager", it
    `templates/index.md`;
 6. updates the concept's directory `index.md` (and its parent, if the
    directory is new) and appends an entry to the bundle-root `log.md`.
+
+It also retires (`status: deprecated` + `superseded_by`), renames, and
+moves concepts on request, leaving a deprecated stub at the old path.
+Body links are written relative to the file, so they render on GitHub
+too; frontmatter path fields start with `/`.
 
 See `skills/okf-concept/SKILL.md`.
 
@@ -44,16 +49,28 @@ all 16 at once: an unused type sitting in the registry biases every
 later `okf-concept` run toward it. See
 `skills/okf-type-library/SKILL.md`.
 
-## What it never writes
+## Trust fields
 
-`verified`, `attester`, `executor.receipt`, and the `computation` body of an
-Attested Computation — these represent confirmation or sanctioned logic that
-must come from a human or a deterministic process, not from an agent.
+Aligned with the official OKF `okf-generate` skill:
+
+- It never adds `verified` to content it wrote in the same run, and records
+  a `human:<id>` verification only when that person asks and states their
+  id — never inferred from git config.
+- It never writes or edits the computation of an Attested Computation: the
+  computation is copied verbatim from a sanctioned source, or no Attested
+  Computation is written and the gap is reported.
+- `executor` and `attester` are written only when the files they point at
+  exist.
+- `stale_after` is set only from a known review cycle, never guessed.
+- Agent-written concepts carry an explicit `status: draft` (a house rule;
+  upstream omits `status` for normal content).
 
 ## Standalone
 
 Claude Code has no inter-plugin dependency mechanism. `okf-writer` restates
 the minimum OKF byte-level rules it needs and works without `okf-core`
 installed — see `skills/okf-concept/references/okf-essentials.md`. When
-`okf-spec` (from `okf-core`) is available, it takes precedence on anything
-`okf-essentials.md` doesn't cover.
+`okf-core` is installed, its `okf-generate` skill (and `okf-spec`, the
+vendored v0.3 spec) is the format authority, and okf-writer hands
+bootstrapping from external sources, migrating an older bundle, and
+validation to it.

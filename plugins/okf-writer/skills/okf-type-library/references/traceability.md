@@ -1,10 +1,11 @@
 # Traceability
 
-OKF has no typed relation fields and no wikilinks (see `okf-spec`'s
-`cross-linking.md`, or `okf-concept`'s `okf-essentials.md` if `okf-core`
-isn't installed) — a link is a plain markdown link, and the kind of
-relationship it asserts lives in the surrounding prose, not the link
-itself. This catalog carries that topology in a convention instead: a
+OKF has no typed relation fields and no wikilinks — a link is a plain
+markdown link, and the kind of relationship it asserts lives in the
+surrounding prose, not the link itself (see `okf-concept`'s
+`okf-essentials.md`, or OKF SPEC §6.1). OKF v0.3 explicitly defers typed
+relationships until the community agrees on one form, and points to
+links meanwhile (SPEC §12.2). This catalog carries that topology in a convention instead: a
 uniform heading name plus a bold lead word on each bullet, both
 greppable.
 
@@ -38,7 +39,7 @@ heading:
 ```markdown
 # Traceability
 
-- <Bold relation>: [<title hint>](/<dir>/<slug>.md)
+- <Bold relation>: [<title hint>](../<dir>/<slug>.md)
 ```
 
 One fixed heading name across the catalog makes
@@ -51,15 +52,24 @@ this exception is deliberate, not an oversight.
 
 Placeholder links use `okf-concept` step 5's `<plural-slug>/` default —
 the slug of the type's English plural — for every type, no exceptions:
-`/specifications/`, `/requirements/`, `/plan-items/`, `/adrs/`,
-`/test-plans/`, `/technologies/`, `/dependencies/`, `/components/`,
-`/interfaces/`, `/risks/`, `/playbooks/`, `/environments/`,
-`/postmortems/`, `/conventions/`, `/glossary-terms/`.
+`specifications/`, `requirements/`, `plan-items/`, `adrs/`,
+`test-plans/`, `technologies/`, `dependencies/`, `components/`,
+`interfaces/`, `risks/`, `playbooks/`, `environments/`, `postmortems/`,
+`conventions/`, `glossary-terms/`.
 
-Every one of these paths lives inside a `<placeholder>` line. When a
-bundle files a type somewhere else, `okf-concept` step 7 rewrites or
-deletes the whole line while resolving placeholders — a wrong directory
-hint costs nothing, it's a starting guess, not a constraint.
+Links are relative to the concept, as `okf-concept` writes every body
+link: `../adrs/<slug>.md` assumes the concept itself sits one level below
+the bundle root, in its own `<plural-slug>/` directory. That form
+resolves the same under OKF and on GitHub, where a `/`-rooted link would
+point at the repository root instead of the bundle root.
+
+Every one of these paths lives inside a `<placeholder>` line. When the
+target or the concept is filed somewhere else (a concept at the bundle
+root links `adrs/<slug>.md`; a bundle that files ADRs under `decisions/`
+links `../decisions/<slug>.md`), `okf-concept` step 7 recomputes the
+relative path while resolving placeholders. A bullet whose target concept
+doesn't exist is deleted, not left pointing at nothing — a wrong
+directory hint costs nothing, it's a starting guess, not a constraint.
 
 ## Per-type bullets
 

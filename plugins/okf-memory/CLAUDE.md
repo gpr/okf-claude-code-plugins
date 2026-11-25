@@ -33,7 +33,14 @@ covers what breaks when you edit the implementation.
 - Ranged reads (`offset`/`limit` not None) are never replaced. That is the
   only way Claude can get a big file's real content.
 - Stale memories are never served: `ensure_memory()` compares
-  `source_sha256` before returning existing content.
+  the `x-okf-memory-source-sha256` key (`KEY_SHA256`) before returning
+  existing content. A memory missing that key (okf-memory 0.1 wrote
+  `source_sha256`) is simply regenerated.
+- Producer-specific frontmatter keys use the `x-okf-memory-` prefix (OKF
+  §4.1); add new ones as `KEY_*` constants next to `KEY_SHA256`.
+- `resource`/`sources[].resource` are percent-encoded paths relative to the
+  memory file. They point outside the bundle root by design; don't
+  "fix" that by making them absolute (that leaks the machine's paths).
 - Everything from `NOTES_HEADING` down is preserved verbatim on regeneration
   (`notes_section()`). Don't change the heading text without migrating it.
 - Only a full Read creates a memory, and only one `servable()` would show

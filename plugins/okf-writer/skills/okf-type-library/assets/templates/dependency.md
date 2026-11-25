@@ -3,7 +3,7 @@ type: Template
 title: Dependency template
 description: One pinned third-party artifact, version and licence.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Dependency` concepts — one third-party artifact this
@@ -18,8 +18,10 @@ description: <one sentence saying what this project uses it for>
 resource: <registry, package, or repository URL>
 tags: [<tag>, <tag>]
 status: draft
-stale_after: <RFC 3339 UTC, Z suffix — when the pin should be revisited>
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+stale_after: "<YYYY-MM-DD from a stated revisit cycle for this pin — else delete this line>"
+sources:
+  - { id: <source-id>, resource: "<URL or /path this was written from>", title: "<source title>" }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Pin
@@ -41,6 +43,6 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Chosen for: [<technology title>](/technologies/<slug>.md)
-- Decided in: [<ADR title>](/adrs/<slug>.md)
-- Installed in: [<environment title>](/environments/<slug>.md)
+- Chosen for: [<technology title>](../technologies/<slug>.md)
+- Decided in: [<ADR title>](../adrs/<slug>.md)
+- Installed in: [<environment title>](../environments/<slug>.md)

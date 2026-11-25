@@ -39,7 +39,7 @@ every later `okf-concept` run toward it.
 | Postmortem | `postmortem` | What broke, what it cost, what changed as a result. |
 | Convention | `convention` | A rule a newcomer would otherwise get wrong. |
 | Glossary Term | `glossary-term` | One term this project uses in a specific way. |
-| Attested Computation | `attested-computation` | A sanctioned computation, drafted for human attestation. |
+| Attested Computation | `attested-computation` | A sanctioned computation, copied from its approved source. |
 
 Full jobs, disambiguation between confusable pairs, and the
 non-collision proof: `references/catalog.md`.
@@ -77,15 +77,19 @@ writing files.
    target path and new/skip status, plus `templates/index.md` and
    `log.md` updates.
 5. **Write.** Read each asset from `assets/templates/<slug>.md`,
-   replace its single `generated:` line with the running model and now,
+   replace its single `generated:` line with the running model and now
+   (both quoted),
    transcribe everything else, write to `<root>/templates/<slug>.md`.
    Never overwrite.
 6. **Update `templates/index.md`** — back-fill entries for any
    pre-existing `templates/*.md` files if the index didn't exist yet
    (skipping this hides them from `okf-concept`).
-7. **Update the bundle-root `index.md`** if `templates/` is new.
-8. **Append to the bundle-root `log.md`** — one `**Creation**` bullet
-   per installed template.
+7. **Update the bundle-root `index.md`** if `templates/` is new. Creating
+   it: OKF v0.3 frontmatter (`okf_version: "0.3"`, `title`,
+   `description`); editing it: keep its frontmatter as it is.
+8. **Append to the bundle-root `log.md`** (no frontmatter) — one
+   `**Creation**` bullet per installed template, linked relative to the
+   bundle root.
 9. **Self-check and report** every file written and every type skipped,
    and confirm no `<placeholder>` survived in any written file's own
    frontmatter.
@@ -104,17 +108,21 @@ its own confirm: that mode skips steps 1–4 and runs 5–9 for the one type
 
 ## Never written by this skill
 
-`verified`, `attester`, `executor` (any form), and a real computation
-body for Attested Computation — every asset ships without them, and the
-installer only ever transcribes the asset's own bytes plus a fresh
-`generated` timestamp.
+`verified`, `executor`, `attester`, `stale_after` values, and any
+computation — every asset ships without them, and the installer only ever
+transcribes the asset's own bytes plus a fresh `generated` timestamp.
+Inside the skeletons, `stale_after` is a placeholder to fill only from a
+stated review cycle, and the Attested Computation skeleton takes its
+computation verbatim from a sanctioned source (`okf-concept` enforces
+both when it writes a concept).
 
 ## Traceability
 
 Every skeleton is pre-wired with a `# Traceability` heading (Glossary
 Term: `# Related terms`). The spine is `Specification → Requirement →
 Plan Item → ADR → Technology → Dependency`, with Test Plan verifying
-Requirements and Plan Items. Full graph and directory hints:
+Requirements and Plan Items. Links are relative to the concept
+(`../adrs/<slug>.md`). Full graph and directory hints:
 `references/traceability.md`.
 
 ## Task → reference
@@ -134,6 +142,6 @@ concept of those types exists. Writing one concept at a time, choosing
 its type, and deriving a template from it after the fact is
 `okf-concept`'s job (same plugin) — this skill installs a template that
 `okf-concept` then loads on its next matching run. Format semantics
-(frontmatter fields, trust tiers, conformance) belong to `okf-spec`
-(`okf-core`). Bundle discovery, precedence, and `okf.json` belong to
+(frontmatter fields, trust tiers, conformance) belong to `okf-core`'s
+`okf-generate` and `okf-spec` skills. Bundle discovery, precedence, and `okf.json` belong to
 `okf-reader`.

@@ -3,7 +3,7 @@ type: Template
 title: Technology template
 description: A technology committed to, and where it applies.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Technology` concepts — a category-level choice and
@@ -17,7 +17,9 @@ title: <the technology, as a name>
 description: <one sentence saying what this project uses it for>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+sources:
+  - { id: <source-id>, resource: "<URL or /path this was written from>", title: "<source title>" }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # What it is used for
@@ -41,6 +43,6 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Decided in: [<ADR title>](/adrs/<slug>.md)
-- Pinned by: [<dependency title>](/dependencies/<slug>.md)
-- Runs in: [<environment title>](/environments/<slug>.md)
+- Decided in: [<ADR title>](../adrs/<slug>.md)
+- Pinned by: [<dependency title>](../dependencies/<slug>.md)
+- Runs in: [<environment title>](../environments/<slug>.md)

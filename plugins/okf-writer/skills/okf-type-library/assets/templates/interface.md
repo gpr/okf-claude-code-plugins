@@ -3,7 +3,7 @@ type: Template
 title: Interface template
 description: One contract between components, with its guarantees.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Interface` concepts — one contract between
@@ -17,7 +17,9 @@ title: <interface name>
 description: <one sentence saying what this interface lets a caller do>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+sources:
+  - { id: <source-id>, resource: "<URL or /path this was written from>", title: "<source title>" }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Contract
@@ -42,6 +44,6 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Exposed by: [<component title>](/components/<slug>.md)
-- Consumed by: [<component title>](/components/<slug>.md)
-- Constrained by: [<convention title>](/conventions/<slug>.md)
+- Exposed by: [<component title>](../components/<slug>.md)
+- Consumed by: [<component title>](../components/<slug>.md)
+- Constrained by: [<convention title>](../conventions/<slug>.md)

@@ -1,6 +1,6 @@
 # okf-reader
 
-Loads [OKF](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md)
+Loads [OKF](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md)
 knowledge bundles into a Claude Code session at startup, lazily: the hook
 only ever prints bundle locations and points at each bundle's `index.md`. It
 never reads bundle content.
@@ -12,13 +12,15 @@ Three sources, in precedence order:
 1. **Organization standards** (`standards_bundle` userConfig) - deployed via
    user or managed settings, so a cloned repository cannot override it.
 2. **Auto-discovery** - any directory under the project root whose
-   `index.md` declares `okf_version` in its frontmatter (OKF SPEC §12, the
-   only place frontmatter is permitted in an `index.md`) is a bundle root.
+   `index.md` declares `okf_version` in its frontmatter (OKF SPEC §8.1:
+   only a bundle-root `index.md` carries frontmatter) is a bundle root.
    No declaration file needed:
 
    ```markdown
    ---
-   okf_version: "0.2"
+   okf_version: "0.3"
+   title: Product spec
+   description: Requirements, ADRs and constraints for the product.
    ---
 
    # Product spec
@@ -28,7 +30,10 @@ Three sources, in precedence order:
    (except `.okf`), `node_modules`, `venv`, `dist`, `build`, `target`,
    `vendor`, and the vendored cache directory, and stops descending into a
    bundle once found - nested `index.md` files inside it are navigation, not
-   further bundle roots. All discovered bundles are normative.
+   further bundle roots. All discovered bundles are normative. A null or
+   empty `okf_version` counts as absent (SPEC §11.2). The bundle table's
+   description is the root's `description`, else its `title`, else its first
+   `# ` heading.
 
    If nothing in the tree declares `okf_version`, the hook falls back to a
    fixed list of conventional locations (`spec/`, `docs/okf/`, `knowledge/`)

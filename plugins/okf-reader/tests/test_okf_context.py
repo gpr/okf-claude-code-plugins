@@ -25,7 +25,7 @@ def write(root: Path, rel: str, content: str) -> Path:
     return path
 
 
-MARKED = '---\nokf_version: "0.2"\n---\n\n# {title}\n'
+MARKED = '---\nokf_version: "0.3"\n---\n\n# {title}\n'
 
 
 class TmpProjectTestCase(unittest.TestCase):
@@ -47,6 +47,56 @@ class DiscoveryTests(TmpProjectTestCase):
         self.assertEqual([b["id"] for b in bundles], ["spec"])
         self.assertEqual(bundles[0]["description"], "Spec")
         self.assertEqual(bundles[0]["status"], "normative")
+
+    def test_description_prefers_frontmatter_description_then_title_then_heading(self):
+        write(self.root, "a/index.md",
+              '---\nokf_version: "0.3"\ntitle: A title\ndescription: Use it for A.\n---\n\n# A heading\n')
+        write(self.root, "b/index.md", '---\nokf_version: "0.3"\ntitle: "B title"\n---\n\n# B heading\n')
+        write(self.root, "c/index.md", MARKED.format(title="C heading"))
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": "Use it for A.", "b": "B title", "c": "C heading"})
+
+    def test_null_or_empty_okf_version_is_not_a_bundle(self):
+        write(self.root, "a/index.md", "---\nokf_version:\n---\n\n# A\n")
+        write(self.root, "b/index.md", "---\nokf_version: null\n---\n\n# B\n")
+        write(self.root, "c/index.md", '---\nokf_version: ""\n---\n\n# C\n')
+        write(self.root, "d/index.md", "---\nokf_version: []\n---\n\n# D\n")
+        write(self.root, "e/index.md", "---\nokf_version: {}\n---\n\n# E\n")
+        self.assertEqual(okf_context.discover_bundles(self.root), [])
+
+    def test_nested_okf_version_key_does_not_mark_a_bundle(self):
+        write(self.root, "a/index.md", "---\nx-acme-meta:\n  okf_version: 1\n---\n\n# A\n")
+        self.assertEqual(okf_context.discover_bundles(self.root), [])
+
+    def test_comment_only_okf_version_is_null(self):
+        write(self.root, "a/index.md", "---\nokf_version: # TBD\n---\n\n# A\n")
+        self.assertEqual(okf_context.discover_bundles(self.root), [])
+
+    def test_block_scalar_and_comment_only_values_fall_back(self):
+        write(self.root, "a/index.md",
+              '---\nokf_version: "0.3"\ntitle: A title\ndescription: >-\n  Folded text.\n---\n\n# A\n')
+        write(self.root, "b/index.md", '---\nokf_version: "0.3"\ndescription: # todo\n---\n\n# B heading\n')
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": "A title", "b": "B heading"})
+
+    def test_quoted_values_keep_escaped_quotes(self):
+        write(self.root, "a/index.md", '---\nokf_version: "0.3"\ndescription: "Use the \\"orders\\" spec"\n---\n')
+        write(self.root, "b/index.md", "---\nokf_version: '0.3'\ntitle: 'Bob''s notes'\n---\n")
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": 'Use the "orders" spec', "b": "Bob's notes"})
+
+    def test_wrapped_values_are_folded(self):
+        write(self.root, "a/index.md",
+              '---\nokf_version: "0.3"\ndescription: "Requirements, ADRs and\n  constraints for the product."\n---\n')
+        write(self.root, "b/index.md",
+              '---\nokf_version: "0.3"\ndescription: Plain text that\n  wraps here.\ntitle: B\n---\n')
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": "Requirements, ADRs and constraints for the product.",
+                                   "b": "Plain text that wraps here."})
+
+    def test_utf8_bom_is_tolerated(self):
+        write(self.root, "spec/index.md", "\ufeff" + MARKED.format(title="Spec"))
+        self.assertEqual([b["id"] for b in okf_context.discover_bundles(self.root)], ["spec"])
 
     def test_nested_index_inside_bundle_is_not_a_separate_bundle(self):
         write(self.root, "spec/index.md", MARKED.format(title="Spec"))

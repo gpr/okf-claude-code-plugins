@@ -10,7 +10,7 @@
     {
       "name": "okf-core",
       "source": "./plugins/okf-core",
-      "description": "Shared Open Knowledge Format (OKF) knowledge for OKF plugins."
+      "description": "Open Knowledge Format (OKF) v0.3 spec reference, the upstream okf-generate and okf-consume skills, and the okf-search agent."
     },
     {
       "name": "okf-reader",

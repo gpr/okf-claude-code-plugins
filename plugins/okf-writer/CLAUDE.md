@@ -3,9 +3,10 @@
 Skill-only plugin: no hooks, no `userConfig`, no scripts, no tests. Ships
 two skills:
 
-- `okf-concept` — the authoring workflow for OKF v0.2 concept documents:
+- `okf-concept` — the authoring workflow for OKF v0.3 concept documents:
   identify the type, apply or derive its `templates/<type>.md` skeleton,
-  write the concept, then keep `index.md` and `log.md` in sync.
+  write the concept, then keep `index.md` and `log.md` in sync; also
+  retire, rename, and move concepts on request.
 - `okf-type-library` — a starter catalog of 16 ready-made
   `templates/<type>.md` files, installed as a chosen subset before any
   concept of those types exists.
@@ -27,7 +28,8 @@ edit it.
 - `skills/okf-concept/references/templates.md` — the `type: Template`
   concept contract, slug/norm rules, reverse lookup, derivation
 - `skills/okf-concept/references/okf-essentials.md` — minimal standalone
-  format restatement; defers to `okf-spec` when it's installed
+  OKF v0.3 format restatement, plus the trust-field house rules; defers to
+  okf-core's `okf-generate` / `okf-spec` when installed
 - `skills/okf-type-library/SKILL.md` — the catalog table, presets, and the
   install procedure outline
 - `skills/okf-type-library/references/catalog.md` — full job description,
@@ -46,9 +48,16 @@ edit it.
 
 `okf-concept` covers authoring workflow only:
 
-- Format semantics (frontmatter fields, trust tiers, conformance) →
-  `okf-core`'s job. `okf-essentials.md` restates only the byte-level rules
-  needed to emit conformant files; it does not duplicate `okf-spec`.
+- Format semantics (frontmatter fields, trust tiers, conformance) and the
+  generic produce/migrate/validate procedure → `okf-core`'s job (its
+  vendored `okf-generate` skill and `okf-spec`). `okf-essentials.md`
+  restates only the rules needed to emit conformant files standalone.
+- Trust-field policy is aligned with upstream `okf-generate` rules 4–5
+  (no `verified` for content written in the same run; never write an
+  Attested Computation's computation; `executor`/`attester` only to
+  existing files). The deliberate deviations — explicit `status: draft`,
+  one confirm, never overwrite — are listed in `okf-essentials.md` and the
+  README. Keep that list complete when adding another.
 - Bundle discovery, precedence, `okf.json` → `okf-reader`'s job. Step 1 of
   the procedure uses okf-reader's injected bundle table when present, but
   falls back to its own `okf_version` scan — same depth, skip-list, and
@@ -67,9 +76,11 @@ needs to defer to `okf-spec`, it names the *skill*, never a file path.
   phrases like "add an ADR", "new OKF document"; literal filenames like
   `templates/index.md`). Trim a keyword only if you've confirmed nothing
   depends on matching it.
-- It deliberately excludes `okf-spec`'s trigger keywords (`frontmatter`,
-  `verified`, `stale_after`, `attester`) so the two skills don't compete for
-  the same prompts.
+- It deliberately excludes `okf-spec`'s and `okf-generate`'s trigger
+  keywords (`frontmatter`, `verified`, `stale_after`, `attester`,
+  "validate", "migrate", "bootstrap") so the skills don't compete for the
+  same prompts. "deprecate/retire/rename/move this concept" is ours: it is
+  one existing concept, the same cardinality as "add a concept".
 - Keep `SKILL.md` a short index. New authoritative content is a new or
   extended `references/*.md`, linked from `SKILL.md` — not inlined into it.
 - `okf-concept` and `okf-type-library` are split by verb and cardinality,
@@ -104,6 +115,8 @@ done
 Reading each one and Writing it to `<bundle>/templates/<slug>.md` with a
 single line rewritten — the `generated:` timestamp, which must carry the
 running model and the actual time and so can never be a plain file copy.
+Both values stay quoted (`{ by: "claude-code/<model>", at: "<ts>" }`): an
+unquoted placeholder with a comma in it splits the flow mapping.
 Every other byte is transcribed unchanged, never recomposed. This is
 deliberate: transcribing rather than composing frontmatter makes the
 `type: Template` invariant above impossible to violate at install time.
@@ -138,8 +151,12 @@ it.
 
 Unlike `okf-reader`, there's no `tests/` here — a skill's content isn't
 executable code to unit-test. Verify changes by reading the skill against
-[OKF SPEC.md v0.2](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md)
-and by a manual walkthrough in a throwaway bundle **outside** this repo,
+[OKF SPEC.md v0.3](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md)
+(vendored at `plugins/okf-core/skills/okf-spec/references/SPEC.md` — read
+it there while developing; the skills themselves must never reference that
+path), by running okf-core's vendored validator
+(`python3 plugins/okf-core/skills/okf-generate/scripts/validate.py <bundle>`,
+needs PyYAML) on a bundle built from the assets, and by a manual walkthrough in a throwaway bundle **outside** this repo,
 never a fixture under `plugins/okf-writer/examples/`: an `okf_version` marker there
 would be auto-discovered by `okf-reader` in this repo and change its
 documented token budget (see `plugins/okf-reader/CLAUDE.md`). The same

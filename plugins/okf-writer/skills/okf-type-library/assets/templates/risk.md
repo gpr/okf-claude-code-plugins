@@ -3,7 +3,7 @@ type: Template
 title: Risk template
 description: What could go wrong, how bad, and who watches it.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Risk` concepts — one thing that could go wrong, how
@@ -17,8 +17,8 @@ title: <the risk, as a short noun phrase>
 description: <one sentence stating the trigger and the impact>
 tags: [<tag>, <tag>]
 status: draft
-stale_after: <RFC 3339 UTC, Z suffix — when this assessment should be revisited>
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+stale_after: "<YYYY-MM-DD from a stated review cycle for this risk — else delete this line>"
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Risk
@@ -45,6 +45,6 @@ If <trigger>, then <impact>.
 
 # Traceability
 
-- Threatens: [<requirement or component title>](/requirements/<slug>.md)
-- Mitigated by: [<plan item title>](/plan-items/<slug>.md)
-- Realized in: [<postmortem title>](/postmortems/<slug>.md)
+- Threatens: [<requirement or component title>](../requirements/<slug>.md)
+- Mitigated by: [<plan item title>](../plan-items/<slug>.md)
+- Realized in: [<postmortem title>](../postmortems/<slug>.md)

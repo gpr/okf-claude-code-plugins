@@ -9,8 +9,8 @@ Bundles come from three places:
     these. Suitable for org-wide normative standards.
   * Auto-discovery - project scope, version-controlled, needs no declaration.
     Any directory under the project root whose `index.md` frontmatter
-    declares `okf_version` (OKF SPEC §12, the only frontmatter an `index.md`
-    may carry) is treated as a bundle root. This is how a repository's own
+    declares `okf_version` (OKF SPEC §8.1: only a bundle-root `index.md` may
+    carry frontmatter) is treated as a bundle root. This is how a repository's own
     knowledge is found: it lives in the tree, so it is discovered from the
     tree.
   * `okf.json` at the project root - project scope, version-controlled,
@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -50,7 +51,9 @@ RULES = """\
 ## How to read OKF bundles
 
 - A link starting with `/` is relative to **its own bundle's root**, not the
-  filesystem: `/tables/orders.md` in a bundle at `spec/` means `spec/tables/orders.md`
+  filesystem: `/tables/orders.md` in a bundle at `spec/` means `spec/tables/orders.md`.
+  Other links resolve from the linking file's directory; never read outside the bundle
+- Concepts are `.md` files with a frontmatter `type`; `index.md` and `log.md` never are
 - Traverse via `index.md` files; read concepts on demand, never preload a bundle
 - To find a concept by tag, type, description or title, use agent `okf-search` if it is
   available (it ships with okf-core), passing it the bundle table below"""
@@ -77,16 +80,60 @@ def trusted_bundles() -> list[dict]:
     ]
 
 
+NULLS = {"", "~", "null", "Null", "NULL", "[]", "{}"}
+
+
+def _scalar(value: str) -> str:
+    """Read a one-line YAML scalar as a string.
+
+    Double-quoted values honour backslash escapes, single-quoted ones `''`.
+    Unquoted values lose a trailing ` #` comment. A value that is only a
+    comment (YAML null) or a block-scalar indicator (`|`, `>-`, ...) whose
+    text sits on later lines returns "", so callers fall back.
+    """
+    value = value.strip()
+    if value.startswith('"'):
+        i = 1
+        while i < len(value) and value[i] != '"':
+            i += 2 if value[i] == "\\" else 1
+        try:
+            return json.loads(value[: i + 1])
+        except ValueError:
+            return value[1:i]
+    if value.startswith("'"):
+        out, i = [], 1
+        while i < len(value):
+            if value[i] == "'":
+                if value[i + 1 : i + 2] == "'":
+                    out.append("'")
+                    i += 2
+                    continue
+                break
+            out.append(value[i])
+            i += 1
+        return "".join(out)
+    if value.startswith("#") or re.fullmatch(r"[|>][-+0-9]*", value):
+        return ""
+    return value.split(" #", 1)[0].strip()
+
+
 def read_index_meta(index: Path) -> dict | None:
     """Parse an `index.md`'s frontmatter, if it declares `okf_version`.
 
-    Per SPEC §12, a bundle-root `index.md` MAY carry frontmatter and this is
-    the only place frontmatter is permitted in an `index.md`. A file without
-    an `okf_version` key is not treated as a bundle root; returns None.
+    Per SPEC §8.1, only a bundle-root `index.md` may carry frontmatter, with
+    the keys `okf_version`, `title`, `description` and `license` (plus
+    extension keys). A file whose frontmatter has no non-null `okf_version`
+    (§11.2: null or empty equals absent) is not treated as a bundle root;
+    returns None. Only top-level `key: value` lines are read, so a nested
+    key under an extension mapping can't mark a bundle.
+
+    The returned `description` is what an agent reads to pick a bundle:
+    frontmatter `description`, else frontmatter `title`, else the body's
+    first `# ` heading.
     """
     try:
-        lines = index.read_text(encoding="utf-8").splitlines()
-    except OSError:
+        lines = index.read_text(encoding="utf-8").lstrip("\ufeff").splitlines()
+    except (OSError, UnicodeDecodeError):
         return None
 
     if not lines or lines[0].strip() != "---":
@@ -94,17 +141,30 @@ def read_index_meta(index: Path) -> dict | None:
 
     meta: dict[str, str] = {}
     body_start = None
-    for i, line in enumerate(lines[1:], start=1):
+    i = 1
+    while i < len(lines):
+        line = lines[i]
+        i += 1
         if line.strip() == "---":
-            body_start = i + 1
+            body_start = i
             break
-        if ":" in line:
-            key, _, value = line.partition(":")
-            meta[key.strip()] = value.strip().strip('"').strip("'")
+        if line[:1] in (" ", "\t", "#", "-") or ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        raw = value.strip()
+        # A plain or double-quoted value may wrap onto indented lines; YAML
+        # folds them with single spaces. An empty value (a nested mapping)
+        # or a block indicator (`|`, `>-`) is not joined.
+        if raw and not raw.startswith(("#", "|", ">")):
+            while i < len(lines) and lines[i][:1] in (" ", "\t") and lines[i].strip():
+                raw += " " + lines[i].strip()
+                i += 1
+        meta[key.strip()] = _scalar(raw)
 
-    if body_start is None or "okf_version" not in meta:
+    if body_start is None or meta.get("okf_version", "") in NULLS:
         return None
 
+    heading = ""
     in_fence = False
     for line in lines[body_start:]:
         stripped = line.strip()
@@ -114,9 +174,13 @@ def read_index_meta(index: Path) -> dict | None:
         if in_fence:
             continue
         if stripped.startswith("# "):
-            meta["title"] = stripped[2:].strip()
+            heading = stripped[2:].strip()
             break
 
+    meta["description"] = next(
+        (v for v in (meta.get("description", ""), meta.get("title", ""), heading) if v not in NULLS),
+        "",
+    )
     return meta
 
 
@@ -161,7 +225,7 @@ def discover_bundles(cwd: Path) -> list[dict]:
                 "id": bundle_id,
                 "source": source,
                 "status": "normative",
-                "description": meta.get("title", ""),
+                "description": meta["description"],
                 "_discovered": True,
             }
         )

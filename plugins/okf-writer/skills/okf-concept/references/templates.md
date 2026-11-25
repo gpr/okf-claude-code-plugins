@@ -14,9 +14,11 @@ The skeleton for the *target* type — the frontmatter and body a new
 concept of that type should start from — lives in a fenced code block
 inside the template's body. **It is never a second `---` block.**
 
-This matters because every `.md` file that isn't `index.md` or `log.md`
-is a concept. If a template opened with the target type's frontmatter
-(`type: ADR`, ...), any OKF consumer — including this skill's own
+This matters because a `.md` file (other than `index.md` or `log.md`)
+whose frontmatter has a non-empty `type` is a concept (OKF §3.2), and
+consumers read the *first* `---` block as that frontmatter. If a template
+opened with the target type's frontmatter (`type: ADR`, ...), any OKF
+consumer — including this skill's own
 type-vocabulary scan at authoring-procedure.md step 2 — would read the
 template file itself as a real concept of that type. That would poison
 the bundle's type vocabulary (a phantom ADR that is really a template)
@@ -88,9 +90,10 @@ that was actually produced, not invented ahead of it.
 | `tags` | key kept with `[<tag>, <tag>]` if the concept used it; dropped otherwise |
 | `resource` | key kept with `<uri hint>` if the concept used it; dropped otherwise |
 | `status` | `draft` |
-| `generated` | `{ by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }` |
+| `generated` | `{ by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }` — quoted, so the placeholder parses as one value |
 | `sources` | dropped — provenance is per-concept |
-| `verified`, `attester`, `executor.receipt` | never present |
+| `stale_after` | dropped — only a concept with a known review cycle has one |
+| `verified`, `executor`, `attester` | never present |
 | body headings | verbatim, in order |
 | body prose under a heading | one `<what goes here>` line |
 | body table | header row kept, data rows collapsed to one placeholder row |
@@ -108,7 +111,7 @@ type: Template
 title: Metric template
 description: Skeleton for Metric concepts.
 status: draft
-generated: { by: claude-code/claude-opus-5, at: 2026-08-09T10:16:00Z }
+generated: { by: "claude-code/claude-opus-5", at: "2026-08-09T10:16:00Z" }
 ---
 
 Skeleton for `type: Metric` concepts. Copy the fence below into a new
@@ -121,7 +124,7 @@ title: <the metric name>
 description: <one sentence defining what is counted, over what window>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Definition

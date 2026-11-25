@@ -19,7 +19,7 @@ this file covers what breaks when you edit the implementation.
   standalone fixture demonstrating the `okf_version` marker (mirrors the
   inline example in `README.md`'s Auto-discovery section but isn't itself
   linked from it)
-- `tests/test_okf_context.py` — stdlib `unittest`, 19 cases
+- `tests/test_okf_context.py` — stdlib `unittest`, 27 cases
 
 ## Invariants in `scripts/okf_context.py`
 
@@ -62,7 +62,7 @@ The default must be repeated identically at every `option()` call site —
 
 The injected block is prepended to every session in a project with a resolved
 bundle. `bin/okf-reader-preview` prints its char and approximate token count
-(~229 tokens on this repo) — check it after changing `RULES` or the table
+(~279 tokens on this repo) — check it after changing `RULES` or the table
 layout in `build_context()`.
 
 ## Tests

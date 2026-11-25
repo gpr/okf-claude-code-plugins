@@ -76,8 +76,8 @@ For each selected type:
 
 1. Read `assets/templates/<slug>.md` from this skill's own directory.
 2. Replace the single `generated:` line with
-   `generated: { by: claude-code/<running model id>, at: <now, RFC 3339
-   UTC, Z suffix> }`. The literal model id shown in this skill's docs
+   `generated: { by: "claude-code/<running model id>", at:
+   "<now, YYYY-MM-DDTHH:MM:SSZ>" }` — both values quoted. The literal model id shown in this skill's docs
    (e.g. `claude-code/claude-opus-5`) is illustrative and never copied
    verbatim — substitute the actual running model.
 3. Every other byte is transcribed unchanged — do not re-type or
@@ -105,36 +105,45 @@ For each selected type:
 
 If `templates/` was newly created this run, add
 `* [Templates](templates/) - Concept skeletons, one per type.` to
-`<root>/index.md`, creating that file with `okf_version: "0.2"` if it
-doesn't exist.
+`<root>/index.md`. If that file doesn't exist, create it with OKF v0.3
+bundle metadata — `okf_version: "0.3"`, a `title` (the bundle's name), a
+one-sentence `description` of the bundle's scope and when to use it, and
+`license` only when the user gave one. If it exists, keep its frontmatter
+byte for byte; never add frontmatter to a subdirectory `index.md`.
 
 ## Step 8 — `log.md`
 
 Bundle root only.
 
 1. Read `<root>/log.md`; create with H1 `# Directory Update Log` if
-   absent.
+   absent. `log.md` never has frontmatter.
 2. Today's `## YYYY-MM-DD` heading: if present, append bullets at the
    end of its block; if absent, insert it immediately after the H1,
    above all existing date headings (newest first) — no blank line
    between the heading and its first bullet, matching `okf-concept`'s
    `log.md` convention exactly (see its worked examples in
    `authoring-procedure.md`).
-3. One bullet per installed template, bundle-root-relative link:
-   `* **Creation**: Installed the [<Type> template](/templates/<slug>.md) from the okf-type-library catalog.`
+3. One bullet per installed template, link relative to the bundle root
+   (where `log.md` sits):
+   `* **Creation**: Installed the [<Type> template](templates/<slug>.md) from the okf-type-library catalog.`
 
 ## Step 9 — Self-check and report
 
 - Every written file has exactly two `^---$` lines.
-- Every written file's frontmatter contains `type: Template`.
+- Every written file's frontmatter contains `type: Template`, and its
+  `generated` line has both values quoted.
+- `templates/index.md` and `log.md` have no frontmatter; a root
+  `index.md` created this run has `okf_version: "0.3"`, `title`, and
+  `description`.
 - No `<…>` survives in any written file's own frontmatter (the fence
   and body keep theirs — that's expected).
 - Every installed slug has an entry in `templates/index.md` whose link
   text matches its fence `type:` exactly.
 - No written file has a `verified:`, `attester:`, or `executor:` key —
   check keys at line start (`^\s*(verified|attester|executor):`), not
-  bare words: `attested-computation.md`'s prose names all three to
-  forbid them.
+  bare words: `attested-computation.md`'s prose names all three — it
+  forbids `verified` and allows `executor`/`attester` only once their
+  files exist — and none of them may be a key in the installed file.
 - List every file written, and every type skipped and why.
 
 ## Single-type mode (invoked by `okf-concept`)

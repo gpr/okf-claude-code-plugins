@@ -21,9 +21,11 @@ Plugin internals vary by kind — this marketplace has both:
   (fixtures for the README).
 - **Skill-only** (`okf-core`, `okf-writer`): `skills/<skill-name>/SKILL.md` +
   `references/*.md` (+ `assets/` and `evals/` for `okf-writer`'s
-  `okf-type-library`, which ships ready-made template files), no hooks,
-  scripts, or tests. `okf-core` also ships `agents/` (the `okf-search`
-  agent).
+  `okf-type-library`, which ships ready-made template files), no hooks.
+  `okf-core` also ships `agents/` (the `okf-search` agent) and vendors the
+  official OKF skills `okf-generate`/`okf-consume` plus `SPEC.md` verbatim
+  from upstream — never edit those files; see `plugins/okf-core/UPSTREAM.md`
+  and its `tests/test_vendored.py`.
 
 ## Adding or renaming a plugin
 
@@ -50,6 +52,9 @@ jq . .claude-plugin/marketplace.json plugins/*/.claude-plugin/plugin.json
   enhancement with a stdlib fallback, installed only by an explicit user-run
   setup command (`plugins/okf-memory/bin/okf-memory-setup`), never by a hook.
   No virtualenv, no dependency manifest the plugin needs before it works.
+  The one exception: okf-core's vendored skill scripts (`validate.py`,
+  `scan.py`) need PyYAML. They are optional — the skills fall back to hand
+  checks — and no hook may run them.
 - Reference in-plugin files from `hooks.json` via `${CLAUDE_PLUGIN_ROOT}`,
   never a relative path (see `plugins/okf-reader/hooks/hooks.json`).
 - Hook invariants for every plugin here: never touch the network; never raise
@@ -66,7 +71,21 @@ Run from the repo root:
 python3 -m unittest discover -s plugins/okf-reader/tests   # tests
 python3 plugins/okf-reader/bin/okf-reader-preview .         # what the hook would inject
 python3 -m unittest discover -s plugins/okf-memory/tests   # okf-memory tests
+python3 -m unittest discover -s plugins/okf-core/tests     # vendored files unmodified
 ```
+
+## OKF version
+
+The plugins target **OKF v0.3**. When upstream releases a new version:
+
+1. Re-sync okf-core's vendored files (`plugins/okf-core/UPSTREAM.md`).
+2. Re-check the hand-written restatements against the new `SPEC.md`:
+   `okf-spec` house rules and field cheat sheet, the `okf-search` agent,
+   okf-reader's `RULES`, okf-writer's `okf-essentials.md` and templates.
+3. Bump the `okf_version` that code and docs write:
+   `grep -rn 'okf_version: "' --include='*.md' --include='*.py' --include='*.json' .`
+   (the fixtures, README, `docs/`, evals), plus okf-memory's constant,
+   which that grep misses: `grep -rn 'OKF_VERSION = ' plugins`.
 
 ## Working in this repo
 

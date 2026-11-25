@@ -23,7 +23,7 @@ colliding with each other or with `okf-concept`'s type-matching rules
 | `Postmortem` | `postmortem` | `postmortem` | What broke, what it cost, what changed as a result. |
 | `Convention` | `convention` | `convention` | A rule a newcomer would otherwise get wrong. |
 | `Glossary Term` | `glossary-term` | `glossary-term` | One term this project uses in a specific way. |
-| `Attested Computation` | `attested-computation` | `attested-computation` | A sanctioned computation, drafted for human attestation. |
+| `Attested Computation` | `attested-computation` | `attested-computation` | A sanctioned computation, copied from its approved source. |
 
 Each asset's own frontmatter `description:` is byte-identical to its
 one-liner above, and the installer copies that same string into the
@@ -93,25 +93,25 @@ spine most likely to blur:
 
 ## Documented deviations from `okf-concept`'s defaults
 
-- **`stale_after` pre-wired.** `okf-concept` step 7 omits `stale_after`
-  unless the user supplies a value. `Dependency` and `Risk` are the
-  only two skeletons that carry it as a placeholder line — a pin with
-  no revisit date and a risk with no review date are exactly the
-  failure modes those two types exist to prevent. The placeholder is
-  still filled-or-deleted like any other, so `okf-concept`'s mechanical
-  rule holds; only the *presence* of the line as a prompt differs.
-- **`Attested Computation` carries no `executor` key at all**, even
-  though `okf-spec`'s house rules permit an agent to propose `executor`
-  on a fresh draft with no `verified` entry. `executor.receipt` is
-  never agent-written under any circumstance, and showing the parent
-  `executor:` key in a template invites filling the whole block. Add
-  `executor` by hand once a real one exists.
+- **`stale_after` as a prompt.** `okf-concept` step 7 omits
+  `stale_after` unless a review cycle is known. `Dependency` and `Risk`
+  are the only two skeletons that carry it as a placeholder line, as a
+  prompt to *ask* for the revisit or review cycle — a pin nobody
+  revisits and a risk nobody reviews are the failure modes those two
+  types exist to prevent. The placeholder is filled only from a cycle
+  the user or a source states, and deleted otherwise: OKF says never to
+  invent a review date (SPEC §5.5).
+- **`Attested Computation` carries no `executor` or `attester` key.**
+  Both point at real files (run instructions; a deterministic attester)
+  and are written only when those files exist; a skeleton line would
+  invite pointing at a file that doesn't. The skeleton's body says how
+  to add them.
 
 ## Preset membership
 
 See `SKILL.md` for the preset table. `Glossary Term` and
 `Attested Computation` are in no preset — install them by explicit name
 or via `all`. `Attested Computation` deliberately never widens with a
-preset: it is the one type in this catalog where a wrong template is a
-policy violation (an agent-authored computation body), not a style
+preset: it is the one type in this catalog where a careless concept is
+a policy violation (an agent-authored computation), not a style
 problem.

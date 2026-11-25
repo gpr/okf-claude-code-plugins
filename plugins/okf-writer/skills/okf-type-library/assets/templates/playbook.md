@@ -3,7 +3,7 @@ type: Template
 title: Playbook template
 description: A repeatable procedure a human runs.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Playbook` concepts — a repeatable procedure a human
@@ -17,7 +17,7 @@ title: <the procedure, stated as an action>
 description: <one sentence saying when to run this and what it achieves>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # When to run this
@@ -40,5 +40,5 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Operates: [<component or environment title>](/components/<slug>.md)
-- Written after: [<postmortem title>](/postmortems/<slug>.md)
+- Operates: [<component or environment title>](../components/<slug>.md)
+- Written after: [<postmortem title>](../postmortems/<slug>.md)

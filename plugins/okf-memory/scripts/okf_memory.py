@@ -58,8 +58,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import outline as outline_mod  # noqa: E402
 
-PRODUCER = "okf-memory/0.1.0"  # OKF actor `<producer>/<version>`; keep in step with plugin.json
-OKF_VERSION = "0.2"
+PRODUCER = "okf-memory/0.2.0"  # OKF actor `<producer>/<version>`; keep in step with plugin.json
+OKF_VERSION = "0.3"
+# Extension keys this producer writes (OKF §4.1 reserves the x- prefix for them).
+KEY_SHA256 = "x-okf-memory-source-sha256"
+LEGACY_SHA256 = "source_sha256"  # okf-memory 0.1
+KEY_BYTES = "x-okf-memory-source-bytes"
+KEY_LINES = "x-okf-memory-source-lines"
+KEY_ENTRIES = "x-okf-memory-outline-entries"
+INDEX_TITLE = "Source Memories"
+INDEX_DESCRIPTION = (
+    "Structural outlines, with source line numbers, of this project's large "
+    "files, written by okf-memory; read a memory before the file it outlines."
+)
 DEFAULT_MAX_BYTES = 20000
 DEFAULT_MEMORY_DIR = ".memory"
 # Serve the memory only when it is at most this fraction of the source size.
@@ -201,8 +212,11 @@ def build_memory(rel: str, source: Path, mem: Path, data: bytes, notes: str) -> 
     dropped = max(0, len(entries) - outline_mod.MAX_ENTRIES)
     entries = entries[: outline_mod.MAX_ENTRIES]
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    # Relative to the concept itself, so the path resolves as OKF §6 reads it.
-    link = Path(os.path.relpath(source, mem.parent)).as_posix()
+    # Relative to the concept itself (OKF §6 rule 3), percent-encoded (§6
+    # Identifiers). The source sits outside the memory bundle's root, so an
+    # OKF consumer treats this as external and won't read it; it still
+    # locates the source for Claude.
+    link = quote(Path(os.path.relpath(source, mem.parent)).as_posix(), safe="/")
 
     parts = [
         "---",
@@ -212,11 +226,11 @@ def build_memory(rel: str, source: Path, mem: Path, data: bytes, notes: str) -> 
         f"resource: {_yaml_str(link)}",
         "tags: [okf-memory]",
         f"sources: [{{ id: source, resource: {_yaml_str(link)}, title: {_yaml_str(rel)} }}]",
-        f"generated: {{ by: {PRODUCER}, at: {now} }}",
-        f"source_sha256: {sha256(data)}",
-        f"source_bytes: {len(data)}",
-        f"source_lines: {n_lines}",
-        f"outline_entries: {len(entries)}",
+        f'generated: {{ by: {PRODUCER}, at: "{now}" }}',
+        f'{KEY_SHA256}: "{sha256(data)}"',
+        f"{KEY_BYTES}: {len(data)}",
+        f"{KEY_LINES}: {n_lines}",
+        f"{KEY_ENTRIES}: {len(entries)}",
         "---",
         "",
         "# Outline",
@@ -276,11 +290,13 @@ def _rewrite_index(mem_root: Path, edit) -> None:
 
     `edit(entries)` gets the section's `* [` lines and returns the new ones,
     which are written sorted by link; everything else in the file is kept.
-    The file is created (with `okf_version`) when missing.
+    The file is created (with `okf_version`, `title` and `description`, OKF
+    §8.1) when missing.
     """
     index = mem_root / "index.md"
     text = index.read_text(encoding="utf-8") if index.is_file() else (
-        f'---\nokf_version: "{OKF_VERSION}"\n---\n\n{INDEX_HEADING}\n\n'
+        f'---\nokf_version: "{OKF_VERSION}"\ntitle: {INDEX_TITLE}\n'
+        f"description: {INDEX_DESCRIPTION}\n---\n\n{INDEX_HEADING}\n\n"
     )
     lines = text.splitlines()
     try:
@@ -352,19 +368,23 @@ def add_log_entry(mem_root: Path, entry: str) -> None:
     write_atomic(log, "\n".join(lines).rstrip("\n") + "\n")
 
 
-def update_log(mem_root: Path, mem: Path, title: str, created: bool) -> None:
-    """Log the creation or regeneration of a memory."""
+def update_log(mem_root: Path, mem: Path, title: str, reason: str) -> None:
+    """Log why a memory was written: "created", "changed", or "migrated"."""
     link = _md_link(mem_root, mem, title)
-    add_log_entry(mem_root, f"* **Creation**: Memory of the source file, {link}." if created
-                  else f"* **Update**: Regenerated {link} after its source file changed.")
+    entries = {
+        "created": f"* **Creation**: Memory of the source file, {link}.",
+        "changed": f"* **Update**: Regenerated {link} after its source file changed.",
+        "migrated": f"* **Update**: Migrated {link} to okf-memory 0.2 keys.",
+    }
+    add_log_entry(mem_root, entries[reason])
 
 
-def record_in_bundle(mem_root: Path, mem: Path, content: str, created: bool) -> None:
+def record_in_bundle(mem_root: Path, mem: Path, content: str, reason: str) -> None:
     meta = read_frontmatter(content)
     title = meta.get("title") or mem.name[:-3]
     with _BundleLock(mem_root):
         update_index(mem_root, mem, title, meta.get("description", ""))
-        update_log(mem_root, mem, title, created)
+        update_log(mem_root, mem, title, reason)
 
 
 def servable(content: str, size: int) -> bool:
@@ -374,7 +394,7 @@ def servable(content: str, size: int) -> bool:
     MAX_MEMORY_RATIO of the source. The `# Notes` section is not counted, so
     notes that grow over time never switch the memory off.
     """
-    if read_frontmatter(content).get("outline_entries", "0") == "0":
+    if read_frontmatter(content).get(KEY_ENTRIES, "0") == "0":
         return False
     cut = content.find(f"\n{NOTES_HEADING}\n")
     generated = content if cut < 0 else content[: cut + 1]
@@ -393,14 +413,22 @@ def ensure_memory(root: Path, source: Path, mem: Path, data: bytes, create: bool
     existing = mem.read_text(encoding="utf-8", errors="replace") if mem.is_file() else None
     if existing is None and not create:
         return None
-    if existing is not None and read_frontmatter(existing).get("source_sha256") == sha256(data):
+    old = read_frontmatter(existing) if existing is not None else {}
+    digest = sha256(data)
+    if old.get(KEY_SHA256) == digest:
         return existing
     rel = source.relative_to(root).as_posix()
     content = build_memory(rel, source, mem, data, notes_section(existing or ""))
     if existing is None and not servable(content, len(data)):
         return content
     write_atomic(mem, content)
-    record_in_bundle(memory_root(root), mem, content, created=existing is None)
+    if existing is None:
+        reason = "created"
+    elif KEY_SHA256 not in old and old.get(LEGACY_SHA256) == digest:
+        reason = "migrated"  # written by okf-memory 0.1; only the key names changed
+    else:
+        reason = "changed"
+    record_in_bundle(memory_root(root), mem, content, reason)
     return content
 
 

@@ -1,144 +1,135 @@
 ---
 name: okf-spec
-description: Authoritative reference for the Open Knowledge Format (OKF) v0.2 — bundles of markdown concept documents with YAML frontmatter. Use when creating, editing, validating, reviewing, or migrating OKF bundles or concept documents, when working in a directory whose index.md declares okf_version, or when a question involves OKF frontmatter keys (type, sources, generated, verified, status, stale_after, runtime, parameters, executor, attester), reserved index.md/log.md files, trust tiers, actor strings, cross-links, conformance, or Attested Computation.
+description: Format reference for the Open Knowledge Format (OKF) v0.3 — bundles of markdown concept documents with YAML frontmatter — plus this plugin set's house rules for writing it. Use when a question is about what an OKF field, file, or rule means (type, sources, generated, verified, status, superseded_by, stale_after, runtime, parameters, computation, executor, attester, okf_version, license, x- extension keys), reserved index.md/log.md files, which .md files are concepts, link and path resolution, trust tiers, actor strings, conformance, versioning, or Attested Computation semantics; or when working in a directory whose index.md declares okf_version and you need the spec text. To produce, migrate, repair, validate, or record a verification, use okf-generate; to answer from a bundle, use okf-consume.
 ---
 
 # OKF Spec
 
-Source: [OKF SPEC.md v0.2](https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/refs/heads/main/okf/SPEC.md).
+Source: [`references/SPEC.md`](references/SPEC.md), OKF v0.3, vendored
+verbatim from
+[open-knowledge-format/open-knowledge-format](https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md)
+(see `UPSTREAM.md` at the plugin root). It is the normative text; this file is
+an index into it plus house rules.
+
+## Which skill
+
+| Task | Use |
+|---|---|
+| Write, generate, enrich, migrate, repair, or validate a bundle; record a verification | `okf-generate` |
+| Answer a question from a bundle; report trust, freshness, attestation | `okf-consume` |
+| "What does this field / file / rule mean?" | this skill → the SPEC section below |
 
 ## What OKF is
 
-OKF is a directory of markdown files with YAML frontmatter: no schema
-registry, no central authority, no required tooling. A **bundle** is the
-unit of distribution; a **concept** is one markdown file within it, the
-unit of knowledge. A concept's ID is its path within the bundle with the
-`.md` suffix removed.
+A **bundle** is a directory tree of markdown files. Its root is marked by a
+bundle-root `index.md` with frontmatter (§2, §8.1). Inside it (§3.2):
 
-## Invariants (spec MUST)
+- A **concept** is a `.md` file, not named `index.md` or `log.md`, whose
+  frontmatter has a non-empty `type`. Its **concept ID** is its path within
+  the bundle without `.md`.
+- A `.md` file without frontmatter or without `type` (`README.md`,
+  `AGENTS.md`, `SKILL.md`) is **not a concept**. Consumers skip it; it does
+  not affect conformance.
+- A file not ending in `.md` is an **asset** (images, attester code).
+- Names starting with `.` are not part of the bundle; symlinks leaving the
+  root are not followed.
+- `index.md` and `log.md` are reserved at every level and are never
+  concepts, whatever frontmatter they hold. Only the **bundle-root**
+  `index.md` may have frontmatter (`okf_version`, `title`, `description`,
+  `license`, extension keys); subdirectory `index.md` and every `log.md`
+  have none.
 
-- `type` is the only always-required frontmatter key. A concept carrying
-  just `type` is fully conformant (§11).
-- `index.md` and `log.md` are reserved at every level of the hierarchy —
-  never use them as concept documents.
-- `index.md` carries no frontmatter, except an optional `okf_version` in
-  the bundle-root `index.md` only.
-- Consumers MUST NOT reject a bundle for: unknown `type` values, unknown
-  extra frontmatter keys, broken cross-links, a missing `index.md`, or
-  missing optional fields (§11).
-- A bare `verified: { by, at }` mapping MUST be treated as a one-element
-  list (§5.2).
-- The `human:` actor prefix is mandatory for hand-authored or
-  human-confirmed content — trust tiers key off it (§5.3, §7).
-- An agent MAY supply values for declared `parameters` on an Attested
-  Computation but MUST NOT author or edit the sanctioned computation
-  itself (§10.3).
-
-## Rules for this agent
-
-These are house policy for this plugin set, not OKF normative text —
-don't quote them back as spec.
-
-- **Agent-writable:** `type`, `title`, `description`, `resource`, `tags`,
-  `sources`, `generated`, `status`, `stale_after`, and values for declared
-  `parameters`. When drafting a brand-new Attested Computation concept
-  (`status: draft`, no `verified` entry yet), an agent MAY also propose
-  `runtime`, `parameters`, `computation`, and `executor` — the concept
-  stays unverified until a human confirms it.
-- **Never agent-written:** `verified` (any entry), `attester`,
-  `executor.receipt`, and the `computation` body of an Attested
-  Computation. On an Attested Computation that already carries a
-  `verified` entry, this extends to `runtime`, the `computation` path,
-  and `executor.resource` too — changing any of these redefines what
-  "sanctioned" means, so it requires the same human/process confirmation
-  as `verified` itself, not a silent agent edit. These fields represent
-  confirmation or sanctioned logic that must come from a human or a
-  deterministic process, not from this agent.
-- **Actor literal:** for agent-authored concepts, `generated.by` is
-  `claude-code/<model-id>` (e.g. `claude-code/claude-opus-5`). §7 only
-  defines the grammar `<producer>/<version>`; this pins the literal so
-  bundles written by these plugins stay internally consistent.
-- **Timestamps:** every time-valued field — `generated.at`,
-  `verified[].at`, `stale_after`, `sources[].last_modified`, and
-  `usage_window.from`/`to` — is written RFC 3339, UTC, with a `Z` suffix
-  (`2026-08-09T14:30:00Z`). §5 defines all of them as datetimes or
-  instants; this pins the UTC/`Z` form. When *reading* a legacy
-  date-only value (`stale_after: 2026-09-23`), treat it as that day's
-  `00:00:00Z`.
-- If a bundle's `index.md` declares an `okf_version` other than `0.2`,
-  say so explicitly and read `references/conformance.md` before assuming
-  field semantics — v0.1 renamed or dropped some fields (§13).
+A path in a link or a path field resolves three ways (§6): a URI scheme is an
+absolute URL; a leading `/` resolves from the bundle root; anything else
+resolves from the directory of the file that contains it. A value resolving
+outside the bundle root is external — never read it from disk.
 
 ## Field cheat sheet
 
-| Key | Applies to | Meaning | Reference |
+An index, not the specification: read the cited section before answering a
+field question.
+
+| Key | Applies to | Meaning | SPEC |
 |---|---|---|---|
-| `type` | any concept | required; kind of concept, freeform | `frontmatter.md` |
-| `title` | any concept | display name | `frontmatter.md` |
-| `description` | any concept | one-sentence summary | `frontmatter.md` |
-| `resource` | any concept | canonical URI of the underlying asset | `frontmatter.md` |
-| `tags` | any concept | list of freeform labels | `frontmatter.md` |
-| `sources` | any concept | provenance list + credibility signals | `trust-and-provenance.md` |
-| `usage_window` | any concept | `{from, to}` framing `sources[].usage_count` | `trust-and-provenance.md` |
-| `generated` | any concept | `{by, at}` — who/when last wrote the content | `trust-and-provenance.md` |
-| `verified` | any concept | list of `{by, at}` confirmation events | `trust-and-provenance.md` |
-| `status` | any concept | `draft \| stable \| deprecated`, default `stable` | `trust-and-provenance.md` |
-| `stale_after` | any concept | absolute instant; stale when `now >=` it | `trust-and-provenance.md` |
-| `runtime` | Attested Computation | required; how to run it (`bigquery`, `dbt`, ...) | `attested-computation.md` |
-| `parameters` | Attested Computation | typed named holes: `{name, type, required}` | `attested-computation.md` |
-| `computation` | Attested Computation | path to computation file, instead of inline fence | `attested-computation.md` |
-| `executor` | Attested Computation | `{resource, receipt}` — how it's run and what proves it | `attested-computation.md` |
-| `attester` | Attested Computation | deterministic (no-LLM) verdict code | `attested-computation.md` |
-| `okf_version` | bundle-root `index.md` only | declared spec version, e.g. `"0.2"` | `conformance.md` |
+| `type` | concept | required; freeform kind; consumers accept unknown types | §4.1 |
+| `title`, `description` | concept | display name; one-sentence summary | §4.1 |
+| `resource` | concept | canonical URI of the underlying asset (path field) | §4.1, §6.2 |
+| `tags` | concept | YAML list; a scalar is one tag, never split at commas | §4.1, §11.2 |
+| `sources` | concept | provenance entries: `resource` (required), `id`, `title`, `author` (actor), `usage_count`, `last_modified` | §5.1 |
+| `usage_window` | concept | `{ from, to }` period for `usage_count` | §5.1 |
+| `generated` | concept | `{ by, at }`: last *meaningful* change; `by` required | §5.2 |
+| `verified` | concept | list of `{ by, at }` (both required); bare mapping = one item; tier counts only events with `at >= generated.at` | §5.2, §5.3 |
+| `status` | concept | `draft \| stable \| deprecated`; absent = `stable`; any other value = not current | §5.4 |
+| `superseded_by` | deprecated concept | path of the replacement | §5.4 |
+| `stale_after` | concept | instant; stale when `now >= stale_after`; unparseable = never fresh | §5.5 |
+| `runtime` | Attested Computation | required; defines what `parameters` mean | §10.2 |
+| `parameters` | Attested Computation | `{ name, type, required }`; `name`, `type` required; `required` defaults to `false` | §10.2 |
+| `computation` | Attested Computation | path to the computation file, instead of a fenced block | §10.3 |
+| `executor` | Attested Computation | `{ resource, receipt }`: run instructions, and the fields a run returns | §10.2 |
+| `attester` | Attested Computation | `{ resource }`: deterministic (no-LLM) code returning `{ ok, reason }` | §10.2, §10.5 |
+| `okf_version`, `title`, `description`, `license` | bundle-root `index.md` | bundle metadata; `okf_version` quoted, e.g. `"0.3"` | §8.1 |
+| `x-<producer>-<name>` | anywhere | extension keys; consumers never reject unknown keys | §4.1 |
 
-## Smallest legal concept
+Timestamps (`generated.at`, `verified[].at`, `stale_after`,
+`sources[].last_modified`, `usage_window.from`/`to`) are RFC 3339 date-times
+with an offset, or a full date meaning 00:00 UTC that day (§5).
 
-```markdown
----
-type: Playbook
----
+## SPEC.md section index
 
-# Notes
+`references/SPEC.md` is about 54 KB. Read the line range you need with
+`Read` (`offset`/`limit`) or `Grep`, not the whole file.
 
-Anything goes here — `type` is the only required key.
-```
-
-## Bundle-root `index.md`
-
-```markdown
----
-okf_version: "0.2"
----
-
-# Bundle
-
-* [Some concept](some-concept.md) - short description.
-```
-
-## Task → reference
-
-| Task | Read |
+| Lines | Section |
 |---|---|
-| Adding or editing a concept document | `references/frontmatter.md` |
-| Laying out a new bundle, `index.md`, `log.md` | `references/bundle-structure.md` |
-| Linking between concepts, path-valued fields | `references/cross-linking.md` |
-| Citing sources, provenance, trust tiers, `status` | `references/trust-and-provenance.md` |
-| Recording a change to a bundle | `references/bundle-structure.md` |
-| After adding a concept, linking it from `index.md` | `references/bundle-structure.md` |
-| Anything with `runtime`, `computation`, `executor`, `attester` | `references/attested-computation.md` |
-| Validating or reviewing a bundle | `references/validation-checklist.md` |
-| `okf_version` isn't `0.2`, or migrating from v0.1 | `references/conformance.md` |
-| Need a complete file to copy | `references/worked-example.md` |
+| 13–47 | §1 Motivation, goals, non-goals |
+| 48–73 | §2 Terminology |
+| 74–119 | §3 Bundle structure; §3.1 reserved filenames; §3.2 concepts, assets, other files |
+| 120–237 | §4 Concept documents: frontmatter syntax, §4.1 fields and extensions, §4.2 body, §4.3–4.4 examples |
+| 238–372 | §5 Provenance, trust, lifecycle: timestamps, §5.1 `sources`, §5.2 `generated`/`verified`, §5.3 trust tiers, §5.4 `status`/`superseded_by`, §5.5 `stale_after` |
+| 373–420 | §6 Links and paths: resolution, §6.1 links, §6.2 path fields, §6.3 `references/`, §6.4 bundle graph |
+| 421–439 | §7 Actor convention |
+| 440–482 | §8 Index files; §8.1 bundle metadata |
+| 483–503 | §9 Log files |
+| 504–649 | §10 Attested computations |
+| 650–694 | §11 Conformance; §11.2 consumer rules |
+| 695–725 | §12 Versioning; §12.1 older bundles; §12.2 deferred |
+| 726–766 | §13 Changes from v0.2 |
+| 767–928 | Appendix A: worked example (income statement) |
+| 929–943 | Appendix B: changes from v0.1 to v0.2 |
 
-Read the matching reference before answering. Do not answer OKF field
-questions from the cheat sheet above — it is an index, not a
-specification. Read only the references the task needs — usually one
-or two. Validating a bundle is the exception: `validation-checklist.md`
-names the other references its checks depend on. Paths are relative to
-this skill's directory.
+## House rules
+
+House policy for this plugin set, not OKF normative text — don't quote it
+back as spec. It only fills in what SPEC.md and `okf-generate` leave open;
+where they speak, they win.
+
+- **Actor literal.** For content Claude Code writes, `generated.by` is
+  `"claude-code/<model-id>"` (e.g. `"claude-code/claude-opus-5"`) — the
+  `<tool>/<model>` form `okf-generate` rule 3 asks for, pinned so bundles
+  written by these plugins stay consistent.
+- **Timestamps.** Write every timestamp quoted, in UTC with a `Z` suffix.
+  Use the date-time form (`"2026-08-09T14:30:00Z"`) for `generated.at` and
+  `verified[].at`; the other timestamp keys may be a date (`"2026-12-31"`).
+- **Trust fields** follow `okf-generate` rules 4 and 5, restated so they are
+  not lost:
+  - Never add a `verified` entry to content generated in the same run. Add a
+    `human:<id>` entry only when that person confirmed the content, asked for
+    it to be recorded, and stated their id; never infer an id from git
+    config or a login name.
+  - Never write or edit the computation of an Attested Computation. Copy it
+    exactly from a sanctioned source and cite it. Without one, describe the
+    metric, write no Attested Computation, and report the gap. An unreviewed
+    query the user explicitly wants kept is a `type: Reference` with
+    `status: draft`, never linked as a computation.
+  - Set `executor.resource` / `attester.resource` only to files that exist.
+    Otherwise omit the field and say the computation is not attestable yet.
+- **Other versions.** If a bundle's root `index.md` declares an
+  `okf_version` other than `0.3`, or none, say so. Read it best-effort with
+  the §12.1 fallbacks (SPEC lines 695–725), and offer migration through
+  `okf-generate` rather than silently rewriting it.
 
 ## Scope
 
-`okf-spec` covers format semantics only. Bundle discovery, precedence,
-and `okf.json` are `okf-reader`'s job. Authoring workflow is
-`okf-writer`'s job.
+`okf-spec` covers format semantics. Bundle discovery, precedence, and
+`okf.json` are `okf-reader`'s job; concept authoring workflow, templates,
+and type libraries are `okf-writer`'s.

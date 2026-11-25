@@ -1,11 +1,11 @@
 ---
 name: okf-concept
-description: Authoring workflow for Open Knowledge Format (OKF) v0.2 concept documents — identify the type, apply the matching templates/<type>.md skeleton, write the concept, then derive a new template if the type is new and update index.md and log.md. Use when asked to "create a concept", "add a concept", "new OKF document", "add an ADR", "add a playbook", "document this table in the bundle", "add a metric/runbook/reference to the knowledge bundle", "start an OKF bundle", or when a question involves templates/index.md, deriving or reusing a concept template, choosing a type value, concept filenames and slugs, where a new concept file belongs, index.md entries, or log.md update entries.
+description: Authoring workflow for Open Knowledge Format (OKF) v0.3 concept documents — identify the type, apply the matching templates/<type>.md skeleton, write the concept, then derive a new template if the type is new and update index.md and log.md; also retire, rename, or move a concept. Use when asked to "create a concept", "add a concept", "new OKF document", "add an ADR", "add a playbook", "document this table in the bundle", "add a metric/runbook/reference to the knowledge bundle", "start an OKF bundle", "deprecate/retire/rename/move this concept", or when a question involves templates/index.md, deriving or reusing a concept template, choosing a type value, concept filenames and slugs, where a new concept file belongs, index.md entries, or log.md update entries.
 ---
 
 # OKF Concept
 
-Creates OKF v0.2 concept documents: identifies the `type`, reuses or derives
+Creates OKF v0.3 concept documents: identifies the `type`, reuses or derives
 its `templates/<type>.md` skeleton, writes the concept, and keeps
 `index.md`/`log.md` current.
 
@@ -14,8 +14,7 @@ its `templates/<type>.md` skeleton, writes the concept, and keeps
 Given a request naming a concept to add, this skill finds the bundle, works
 out whether the requested type already exists, fills in (or invents) a
 skeleton, writes one file, and updates the bookkeeping files a bundle
-depends on for discovery — the two steps `okf-spec`'s
-`bundle-structure.md` calls out as "commonly forgotten": adding the
+depends on for discovery — the two steps most often forgotten: adding the
 concept to its directory's `index.md`, and logging the change.
 
 ## Procedure
@@ -54,8 +53,11 @@ the confirm at step 6.
    no precedent), title, description, and the skeleton source.
 7. **Write the concept.** On catalog-install, first install the one
    template via `okf-type-library`'s single-type mode. Set `type`,
-   `title`, `description`, `status: draft`, `generated`. Resolve or
-   delete every `<placeholder>`; delete headings with nothing under them.
+   `title`, `description`, `status: draft`, `generated` (quoted
+   `"claude-code/<model>"` and `"<YYYY-MM-DDTHH:MM:SSZ>"`). Record
+   `sources` with footnotes keyed by source `id` for what you drew from;
+   write nothing a source doesn't support. Resolve or delete every
+   `<placeholder>`; delete headings with nothing under them.
 8. **New template only — derive `templates/<slug>.md` afterwards.** The
    type value and the headings stay; values and prose become
    placeholders. Its own frontmatter is `type: Template`; the skeleton
@@ -65,14 +67,17 @@ the confirm at step 6.
 9. **Update indexes.** The concept's own directory `index.md` (create if
    missing); the parent chain only when a directory is new. Entries are
    `* [Title](relative-path) - description`, description copied from the
-   concept's frontmatter.
+   concept's frontmatter. Only the bundle-root `index.md` has frontmatter
+   (a new one gets `okf_version: "0.3"`, `title`, `description`); keep an
+   existing one's frontmatter as it is.
 10. **Append to the bundle-root `log.md`.** Create with
-    `# Directory Update Log` if absent. Today's `## YYYY-MM-DD` heading
-    goes directly under the H1, above older dates. One `**Creation**`
-    bullet for the concept, one more for a derived template, both with
-    `/`-rooted links.
-11. **Self-check and report** every file written, and confirm no
-    `<placeholder>` survived.
+    `# Directory Update Log` if absent, never with frontmatter. Today's
+    `## YYYY-MM-DD` heading goes directly under the H1, above older dates.
+    One `**Creation**` bullet for the concept, one more for a derived
+    template, both with links relative to the bundle root.
+11. **Self-check, validate, and report** every file written, unsourced
+    facts, and concepts needing re-verification; run `okf-generate`'s
+    validator when that skill is available.
 
 ## Ask vs. decide
 
@@ -81,15 +86,24 @@ the confirm at step 6.
 | Slug mechanics, index/log formatting, insertion position | Which bundle, when more than one is found and the request is ambiguous, or when the sole candidate is the trusted bundle |
 | Which frontmatter keys to include | Existing-vs-new on an acronym/containment hit |
 | Which template headings to keep or drop | Target directory when no precedent exists — shown at the confirm, flagged |
-| The date/timestamp values | Overwriting or editing an existing file, or a filename that would collide with a reserved name |
+| The `generated` timestamp | Overwriting or editing an existing file, or a filename that would collide with a reserved name |
+| | A `stale_after` date — only from a review cycle the user or a source states; never guessed |
 
-## Never written by this skill
+## Trust fields
 
-`verified`, `attester`, `executor.receipt`, and the `computation` body of
-an Attested Computation. These are house policy for these plugins, not
-OKF normative text — they represent human or deterministic-process
-confirmation. An Attested Computation is still drafted, not refused: see
-`references/authoring-procedure.md`.
+House policy for these plugins, aligned with `okf-generate` — not OKF
+normative text:
+
+- Never add `verified` to content written in the same run. Record a
+  `human:<id>` verification only when that person confirmed the content,
+  asked for it, and stated their id; never infer an id from git config.
+- Never write or edit the computation of an Attested Computation. Copy it
+  verbatim from a sanctioned source, or write no Attested Computation and
+  report the gap.
+- Write `executor` / `attester` only when the files they point at exist.
+
+See `references/authoring-procedure.md`'s Attested Computation and
+"Updating, retiring, moving" sections.
 
 ## Task → reference
 
@@ -97,7 +111,8 @@ confirmation. An Attested Computation is still drafted, not refused: see
 |---|---|
 | Any step of the authoring procedure, in full | `references/authoring-procedure.md` |
 | The `type: Template` contract, slug/norm rules, deriving a template | `references/templates.md` |
-| Format rules with `okf-core` not installed | `references/okf-essentials.md` |
+| Retire, rename, move, or update a concept; record a verification | `references/authoring-procedure.md` — "Updating, retiring, moving" |
+| OKF v0.3 format rules (links, paths, `sources`, root `index.md`, `log.md`) | `references/okf-essentials.md` |
 
 Read the matching reference before writing files. Paths are relative to
 this skill's directory.
@@ -105,8 +120,11 @@ this skill's directory.
 ## Scope
 
 `okf-concept` covers authoring workflow only. Format semantics (frontmatter
-fields, trust tiers, conformance) belong to `okf-spec` (`okf-core`), read
-via `references/okf-essentials.md` when that skill isn't installed and
-deferred to when it is. Bundle discovery, precedence, and `okf.json` belong
+fields, trust tiers, conformance) belong to `okf-core` — its
+`okf-generate` and `okf-spec` skills — read via
+`references/okf-essentials.md` when those aren't installed and deferred
+to when they are. Bootstrapping a bundle from external sources (schemas,
+docs), migrating an older bundle, and answering from a bundle are
+`okf-generate`'s and `okf-consume`'s jobs. Bundle discovery, precedence, and `okf.json` belong
 to `okf-reader`. Seeding a bundle with a starter set of types, before any
 concept of those types exists, belongs to `okf-type-library` (same plugin).

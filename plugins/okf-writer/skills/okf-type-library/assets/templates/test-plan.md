@@ -3,7 +3,7 @@ type: Template
 title: Test Plan template
 description: How something gets proven, and what evidence counts.
 status: draft
-generated: { by: <claude-code/model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ---
 
 Skeleton for `type: Test Plan` concepts — how a Requirement or Plan Item
@@ -17,7 +17,7 @@ title: <what is under test, as a noun phrase>
 description: <one sentence saying what this proves>
 tags: [<tag>, <tag>]
 status: draft
-generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
+generated: { by: "claude-code/<model-id>", at: "<YYYY-MM-DDTHH:MM:SSZ>" }
 ```
 
 # Under test
@@ -40,5 +40,5 @@ generated: { by: claude-code/<model-id>, at: <RFC 3339 UTC, Z suffix> }
 
 # Traceability
 
-- Verifies: [<requirement or plan item title>](/requirements/<slug>.md)
-- Runs in: [<environment title>](/environments/<slug>.md)
+- Verifies: [<requirement or plan item title>](../requirements/<slug>.md)
+- Runs in: [<environment title>](../environments/<slug>.md)
