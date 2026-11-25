@@ -62,6 +62,7 @@ PRODUCER = "okf-memory/0.2.0"  # OKF actor `<producer>/<version>`; keep in step 
 OKF_VERSION = "0.3"
 # Extension keys this producer writes (OKF §4.1 reserves the x- prefix for them).
 KEY_SHA256 = "x-okf-memory-source-sha256"
+LEGACY_SHA256 = "source_sha256"  # okf-memory 0.1
 KEY_BYTES = "x-okf-memory-source-bytes"
 KEY_LINES = "x-okf-memory-source-lines"
 KEY_ENTRIES = "x-okf-memory-outline-entries"
@@ -367,19 +368,23 @@ def add_log_entry(mem_root: Path, entry: str) -> None:
     write_atomic(log, "\n".join(lines).rstrip("\n") + "\n")
 
 
-def update_log(mem_root: Path, mem: Path, title: str, created: bool) -> None:
-    """Log the creation or regeneration of a memory."""
+def update_log(mem_root: Path, mem: Path, title: str, reason: str) -> None:
+    """Log why a memory was written: "created", "changed", or "migrated"."""
     link = _md_link(mem_root, mem, title)
-    add_log_entry(mem_root, f"* **Creation**: Memory of the source file, {link}." if created
-                  else f"* **Update**: Regenerated {link} after its source file changed.")
+    entries = {
+        "created": f"* **Creation**: Memory of the source file, {link}.",
+        "changed": f"* **Update**: Regenerated {link} after its source file changed.",
+        "migrated": f"* **Update**: Migrated {link} to okf-memory 0.2 keys.",
+    }
+    add_log_entry(mem_root, entries[reason])
 
 
-def record_in_bundle(mem_root: Path, mem: Path, content: str, created: bool) -> None:
+def record_in_bundle(mem_root: Path, mem: Path, content: str, reason: str) -> None:
     meta = read_frontmatter(content)
     title = meta.get("title") or mem.name[:-3]
     with _BundleLock(mem_root):
         update_index(mem_root, mem, title, meta.get("description", ""))
-        update_log(mem_root, mem, title, created)
+        update_log(mem_root, mem, title, reason)
 
 
 def servable(content: str, size: int) -> bool:
@@ -408,14 +413,22 @@ def ensure_memory(root: Path, source: Path, mem: Path, data: bytes, create: bool
     existing = mem.read_text(encoding="utf-8", errors="replace") if mem.is_file() else None
     if existing is None and not create:
         return None
-    if existing is not None and read_frontmatter(existing).get(KEY_SHA256) == sha256(data):
+    old = read_frontmatter(existing) if existing is not None else {}
+    digest = sha256(data)
+    if old.get(KEY_SHA256) == digest:
         return existing
     rel = source.relative_to(root).as_posix()
     content = build_memory(rel, source, mem, data, notes_section(existing or ""))
     if existing is None and not servable(content, len(data)):
         return content
     write_atomic(mem, content)
-    record_in_bundle(memory_root(root), mem, content, created=existing is None)
+    if existing is None:
+        reason = "created"
+    elif KEY_SHA256 not in old and old.get(LEGACY_SHA256) == digest:
+        reason = "migrated"  # written by okf-memory 0.1; only the key names changed
+    else:
+        reason = "changed"
+    record_in_bundle(memory_root(root), mem, content, reason)
     return content
 
 

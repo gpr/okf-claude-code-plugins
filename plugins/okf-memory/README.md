@@ -45,7 +45,8 @@ bundle-root files, so `.memory/` stays a valid OKF v0.3 bundle:
   the memory's `description`; a refresh updates the entry in place. Anything
   else in the file is kept.
 - `.memory/log.md` — newest date first, one entry per change:
-  `**Creation**` for a new memory, `**Update**` for a regeneration,
+  `**Creation**` for a new memory, `**Update**` for a regeneration (or for
+  migrating an okf-memory 0.1 memory to the new key names),
   `**Deletion**` when `bin/okf-memory-prune` removes one. The same
   entry is not repeated under one date, so ten edits of a file in a day log
   one update.

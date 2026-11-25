@@ -84,7 +84,8 @@ The plugins target **OKF v0.3**. When upstream releases a new version:
    okf-reader's `RULES`, okf-writer's `okf-essentials.md` and templates.
 3. Bump the `okf_version` that code and docs write:
    `grep -rn 'okf_version: "' --include='*.md' --include='*.py' --include='*.json' .`
-   (okf-memory's `OKF_VERSION`, the fixtures, README, `docs/`, evals).
+   (the fixtures, README, `docs/`, evals), plus okf-memory's constant,
+   which that grep misses: `grep -rn 'OKF_VERSION = ' plugins`.
 
 ## Working in this repo
 

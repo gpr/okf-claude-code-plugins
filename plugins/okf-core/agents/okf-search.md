@@ -26,7 +26,8 @@ specification is a corrupted specification.
 A concept is a `.md` file whose frontmatter (the block between the first two
 `---` lines) has a non-empty `type`. Skip `index.md`, `log.md`, `.md` files
 with no frontmatter or no `type` (README, AGENTS, SKILL files), and any path
-with a part starting with `.`.
+whose part *below the bundle root* starts with `.` (the bundle itself may
+live under a dot-directory such as `.okf/cache/` or `.memory/`).
 
 ## Method
 

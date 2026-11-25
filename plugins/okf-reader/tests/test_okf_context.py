@@ -60,6 +60,8 @@ class DiscoveryTests(TmpProjectTestCase):
         write(self.root, "a/index.md", "---\nokf_version:\n---\n\n# A\n")
         write(self.root, "b/index.md", "---\nokf_version: null\n---\n\n# B\n")
         write(self.root, "c/index.md", '---\nokf_version: ""\n---\n\n# C\n')
+        write(self.root, "d/index.md", "---\nokf_version: []\n---\n\n# D\n")
+        write(self.root, "e/index.md", "---\nokf_version: {}\n---\n\n# E\n")
         self.assertEqual(okf_context.discover_bundles(self.root), [])
 
     def test_nested_okf_version_key_does_not_mark_a_bundle(self):
@@ -82,6 +84,15 @@ class DiscoveryTests(TmpProjectTestCase):
         write(self.root, "b/index.md", "---\nokf_version: '0.3'\ntitle: 'Bob''s notes'\n---\n")
         bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
         self.assertEqual(bundles, {"a": 'Use the "orders" spec', "b": "Bob's notes"})
+
+    def test_wrapped_values_are_folded(self):
+        write(self.root, "a/index.md",
+              '---\nokf_version: "0.3"\ndescription: "Requirements, ADRs and\n  constraints for the product."\n---\n')
+        write(self.root, "b/index.md",
+              '---\nokf_version: "0.3"\ndescription: Plain text that\n  wraps here.\ntitle: B\n---\n')
+        bundles = {b["id"]: b["description"] for b in okf_context.discover_bundles(self.root)}
+        self.assertEqual(bundles, {"a": "Requirements, ADRs and constraints for the product.",
+                                   "b": "Plain text that wraps here."})
 
     def test_utf8_bom_is_tolerated(self):
         write(self.root, "spec/index.md", "\ufeff" + MARKED.format(title="Spec"))

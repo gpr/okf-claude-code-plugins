@@ -317,6 +317,9 @@ class BundleTests(TmpProjectTestCase):
         self.assertIn("x-okf-memory-source-sha256:", text)
         self.assertNotIn("\nsource_sha256:", text)
         self.assertIn("keep me", text)
+        log = (self.root / ".memory/log.md").read_text()
+        self.assertIn("**Update**: Migrated [mod.py](mod.py.md) to okf-memory 0.2 keys.", log)
+        self.assertNotIn("after its source file changed", log)
 
     def test_creation_writes_root_index_and_log(self):
         self.pre(write(self.root, "pkg/mod.py", big_python()))

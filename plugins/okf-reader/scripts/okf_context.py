@@ -80,7 +80,7 @@ def trusted_bundles() -> list[dict]:
     ]
 
 
-NULLS = {"", "~", "null", "Null", "NULL"}
+NULLS = {"", "~", "null", "Null", "NULL", "[]", "{}"}
 
 
 def _scalar(value: str) -> str:
@@ -141,14 +141,25 @@ def read_index_meta(index: Path) -> dict | None:
 
     meta: dict[str, str] = {}
     body_start = None
-    for i, line in enumerate(lines[1:], start=1):
+    i = 1
+    while i < len(lines):
+        line = lines[i]
+        i += 1
         if line.strip() == "---":
-            body_start = i + 1
+            body_start = i
             break
         if line[:1] in (" ", "\t", "#", "-") or ":" not in line:
             continue
         key, _, value = line.partition(":")
-        meta[key.strip()] = _scalar(value)
+        raw = value.strip()
+        # A plain or double-quoted value may wrap onto indented lines; YAML
+        # folds them with single spaces. An empty value (a nested mapping)
+        # or a block indicator (`|`, `>-`) is not joined.
+        if raw and not raw.startswith(("#", "|", ">")):
+            while i < len(lines) and lines[i][:1] in (" ", "\t") and lines[i].strip():
+                raw += " " + lines[i].strip()
+                i += 1
+        meta[key.strip()] = _scalar(raw)
 
     if body_start is None or meta.get("okf_version", "") in NULLS:
         return None
